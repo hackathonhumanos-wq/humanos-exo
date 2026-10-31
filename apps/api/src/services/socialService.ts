@@ -12,6 +12,11 @@ import type {
   GroupRole,
 } from '../../../../packages/shared-types/src/index.ts';
 
+function createAvatarSvgDataUri(initials: string, bgHex: string, fgHex: string): string {
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="96" height="96" viewBox="0 0 96 96"><rect width="96" height="96" rx="48" fill="${bgHex}"/><text x="50%" y="54%" dominant-baseline="middle" text-anchor="middle" font-family="Plus Jakarta Sans, sans-serif" font-weight="700" font-size="34" fill="${fgHex}">${initials}</text></svg>`;
+  return `data:image/svg+xml;utf8,${encodeURIComponent(svg)}`;
+}
+
 class SocialStore {
   // In-Memory state for friends
   private friendsMap: Map<string, FriendSummary[]> = new Map([
@@ -22,7 +27,7 @@ class SocialStore {
           id: 'user-alex',
           username: 'alex_chen',
           displayName: 'Alex Chen',
-          avatarUrl: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=120&auto=format&fit=crop&q=80',
+          avatarUrl: createAvatarSvgDataUri('AC', '#DDF7EC', '#079669'),
           streakDays: 8,
           totalXp: 1420,
           level: 6,
@@ -34,7 +39,7 @@ class SocialStore {
           id: 'user-priya',
           username: 'priya_patel',
           displayName: 'Priya Patel',
-          avatarUrl: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=120&auto=format&fit=crop&q=80',
+          avatarUrl: createAvatarSvgDataUri('PP', '#E6F0FE', '#438CF5'),
           streakDays: 14,
           totalXp: 2150,
           level: 7,
@@ -46,7 +51,7 @@ class SocialStore {
           id: 'user-marcus',
           username: 'marcus_v',
           displayName: 'Marcus Vance',
-          avatarUrl: 'https://images.unsplash.com/photo-1570295999919-56ceb5ecca61?w=120&auto=format&fit=crop&q=80',
+          avatarUrl: createAvatarSvgDataUri('MV', '#FEF3C7', '#D97706'),
           streakDays: 4,
           totalXp: 620,
           level: 4,
@@ -58,7 +63,7 @@ class SocialStore {
           id: 'user-elena',
           username: 'elena_rostova',
           displayName: 'Elena Rostova',
-          avatarUrl: 'https://images.unsplash.com/photo-1580489944761-15a19d654956?w=120&auto=format&fit=crop&q=80',
+          avatarUrl: createAvatarSvgDataUri('ER', '#EDE9FE', '#7C3AED'),
           streakDays: 3,
           totalXp: 490,
           level: 3,
@@ -70,7 +75,7 @@ class SocialStore {
           id: 'user-jordan',
           username: 'jordan_lee',
           displayName: 'Jordan Lee',
-          avatarUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=120&auto=format&fit=crop&q=80',
+          avatarUrl: createAvatarSvgDataUri('JL', '#E0F2FE', '#0284C7'),
           streakDays: 0,
           totalXp: 180,
           level: 2,
@@ -99,25 +104,25 @@ class SocialStore {
           userId: 'user-priya',
           displayName: 'Priya Patel',
           username: 'priya_patel',
-          avatarUrl: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=120&auto=format&fit=crop&q=80',
+          avatarUrl: createAvatarSvgDataUri('PP', '#E6F0FE', '#438CF5'),
           role: 'OWNER',
           joinedAt: '2026-10-01T00:00:00Z',
           weeklyFocusMinutes: 1140,
         },
         {
           userId: 'current-user',
-          displayName: 'Aarav Sharma',
-          username: 'aarav_sharma',
-          avatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=120&auto=format&fit=crop&q=80',
+          displayName: 'Adarsh Sharma',
+          username: 'adarsh_sharma',
+          avatarUrl: createAvatarSvgDataUri('AS', '#DDF7EC', '#079669'),
           role: 'MEMBER',
           joinedAt: '2026-10-12T00:00:00Z',
-          weeklyFocusMinutes: 620,
+          weeklyFocusMinutes: 930,
         },
         {
           userId: 'user-alex',
           displayName: 'Alex Chen',
           username: 'alex_chen',
-          avatarUrl: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=120&auto=format&fit=crop&q=80',
+          avatarUrl: createAvatarSvgDataUri('AC', '#DDF7EC', '#079669'),
           role: 'ADMIN',
           joinedAt: '2026-10-05T00:00:00Z',
           weeklyFocusMinutes: 870,
@@ -137,18 +142,18 @@ class SocialStore {
       members: [
         {
           userId: 'current-user',
-          displayName: 'Aarav Sharma',
-          username: 'aarav_sharma',
-          avatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=120&auto=format&fit=crop&q=80',
+          displayName: 'Adarsh Sharma',
+          username: 'adarsh_sharma',
+          avatarUrl: createAvatarSvgDataUri('AS', '#DDF7EC', '#079669'),
           role: 'OWNER',
           joinedAt: '2026-10-01T00:00:00Z',
-          weeklyFocusMinutes: 620,
+          weeklyFocusMinutes: 930,
         },
         {
           userId: 'user-marcus',
           displayName: 'Marcus Vance',
           username: 'marcus_v',
-          avatarUrl: 'https://images.unsplash.com/photo-1570295999919-56ceb5ecca61?w=120&auto=format&fit=crop&q=80',
+          avatarUrl: createAvatarSvgDataUri('MV', '#FEF3C7', '#D97706'),
           role: 'MEMBER',
           joinedAt: '2026-10-08T00:00:00Z',
           weeklyFocusMinutes: 490,
@@ -191,7 +196,7 @@ class SocialStore {
       return { success: false, message: 'Please provide a valid username' };
     }
 
-    if (cleanUsername === 'aarav_sharma') {
+    if (cleanUsername === 'adarsh_sharma' || cleanUsername === 'aarav_sharma') {
       return { success: false, message: 'You cannot send a friend request to yourself' };
     }
 
@@ -203,10 +208,12 @@ class SocialStore {
       return { success: false, message: `Request is already ${existing.status.toLowerCase()}` };
     }
 
+    const initials = cleanUsername.slice(0, 2).toUpperCase();
     const newRequest: FriendSummary = {
       id: `user-${Date.now()}`,
       username: cleanUsername,
       displayName: cleanUsername.charAt(0).toUpperCase() + cleanUsername.slice(1),
+      avatarUrl: createAvatarSvgDataUri(initials, '#DDF7EC', '#079669'),
       streakDays: 1,
       totalXp: 120,
       level: 2,
@@ -286,8 +293,9 @@ class SocialStore {
       members: [
         {
           userId,
-          displayName: 'Aarav Sharma',
-          username: 'aarav_sharma',
+          displayName: 'Adarsh Sharma',
+          username: 'adarsh_sharma',
+          avatarUrl: createAvatarSvgDataUri('AS', '#DDF7EC', '#079669'),
           role: 'OWNER',
           joinedAt: new Date().toISOString(),
           weeklyFocusMinutes: 0,
@@ -323,8 +331,9 @@ class SocialStore {
 
     targetGroup.members.push({
       userId,
-      displayName: 'Aarav Sharma',
-      username: 'aarav_sharma',
+      displayName: 'Adarsh Sharma',
+      username: 'adarsh_sharma',
+      avatarUrl: createAvatarSvgDataUri('AS', '#DDF7EC', '#079669'),
       role: 'MEMBER',
       joinedAt: new Date().toISOString(),
       weeklyFocusMinutes: 0,
@@ -368,19 +377,18 @@ class SocialStore {
   ): LeaderboardEntry[] {
     const isOptedIn = this.userPrivacySettings.get(userId)?.showOnLeaderboard ?? true;
 
-    // Base entries pool representing active students
     const pool = [
       {
         userId: 'user-priya',
         displayName: 'Priya Patel',
         username: 'priya_patel',
-        avatarUrl: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=120&auto=format&fit=crop&q=80',
+        avatarUrl: createAvatarSvgDataUri('PP', '#E6F0FE', '#438CF5'),
         level: 7,
         scores: {
           WEEKLY_XP: 580,
-          MONTHLY_FOCUS: 84, // hours
-          DAILY_SESSIONS: 6, // sessions today
-          STREAK_DAYS: 14,
+          MONTHLY_FOCUS: 84,
+          DAILY_SESSIONS: 6,
+          STREAK_DAYS: 26,
         },
         isFriend: true,
         inMyGroup: true,
@@ -389,13 +397,13 @@ class SocialStore {
         userId: 'user-alex',
         displayName: 'Alex Chen',
         username: 'alex_chen',
-        avatarUrl: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=120&auto=format&fit=crop&q=80',
+        avatarUrl: createAvatarSvgDataUri('AC', '#DDF7EC', '#079669'),
         level: 6,
         scores: {
           WEEKLY_XP: 440,
           MONTHLY_FOCUS: 62,
           DAILY_SESSIONS: 4,
-          STREAK_DAYS: 8,
+          STREAK_DAYS: 18,
         },
         isFriend: true,
         inMyGroup: true,
@@ -404,7 +412,7 @@ class SocialStore {
         userId: 'user-tanya',
         displayName: 'Tanya Mehta',
         username: 'tanya_m',
-        avatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=120&auto=format&fit=crop&q=80',
+        avatarUrl: createAvatarSvgDataUri('TM', '#EDE9FE', '#7C3AED'),
         level: 7,
         scores: {
           WEEKLY_XP: 510,
@@ -419,7 +427,7 @@ class SocialStore {
         userId: 'user-rohit',
         displayName: 'Rohit Verma',
         username: 'rohit_v',
-        avatarUrl: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=120&auto=format&fit=crop&q=80',
+        avatarUrl: createAvatarSvgDataUri('RV', '#E0F2FE', '#0284C7'),
         level: 5,
         scores: {
           WEEKLY_XP: 380,
@@ -434,7 +442,7 @@ class SocialStore {
         userId: 'user-marcus',
         displayName: 'Marcus Vance',
         username: 'marcus_v',
-        avatarUrl: 'https://images.unsplash.com/photo-1570295999919-56ceb5ecca61?w=120&auto=format&fit=crop&q=80',
+        avatarUrl: createAvatarSvgDataUri('MV', '#FEF3C7', '#D97706'),
         level: 4,
         scores: {
           WEEKLY_XP: 290,
@@ -449,7 +457,7 @@ class SocialStore {
         userId: 'user-sophia',
         displayName: 'Sophia Alvarez',
         username: 'sophia_alv',
-        avatarUrl: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=120&auto=format&fit=crop&q=80',
+        avatarUrl: createAvatarSvgDataUri('SA', '#FCE7F3', '#DB2777'),
         level: 6,
         scores: {
           WEEKLY_XP: 410,
@@ -462,12 +470,11 @@ class SocialStore {
       },
     ];
 
-    // Current user scores
     const currentUserScore = {
-      WEEKLY_XP: 320,
-      MONTHLY_FOCUS: 42,
-      DAILY_SESSIONS: 3,
-      STREAK_DAYS: 5,
+      WEEKLY_XP: 495,
+      MONTHLY_FOCUS: 68,
+      DAILY_SESSIONS: 4,
+      STREAK_DAYS: 24,
     };
 
     let filtered = [...pool];
@@ -478,16 +485,15 @@ class SocialStore {
       filtered = filtered.filter(u => u.inMyGroup);
     }
 
-    // Add current user if opted in
     const combined = isOptedIn
       ? [
           ...filtered,
           {
             userId: 'current-user',
-            displayName: 'Aarav Sharma (You)',
-            username: 'aarav_sharma',
-            avatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=120&auto=format&fit=crop&q=80',
-            level: 4,
+            displayName: 'Adarsh Sharma (You)',
+            username: 'adarsh_sharma',
+            avatarUrl: createAvatarSvgDataUri('AS', '#DDF7EC', '#079669'),
+            level: 7,
             scores: currentUserScore,
             isFriend: false,
             inMyGroup: true,

@@ -1,97 +1,141 @@
-import React, { useState, useEffect } from 'react';
-import { Play, Pause, RotateCcw, ShieldCheck, CheckCircle2 } from 'lucide-react';
-import { formatTimerSeconds } from '../../../../packages/shared-utils/src/index.ts';
+/**
+ * @file apps/web/src/pages/FocusPage.tsx
+ * @description Light-theme Focus Sessions page with interactive timer and completed session log
+ */
+import React, { useState, useEffect, useCallback } from 'react';
+import { Clock, Award, CheckCircle2 } from 'lucide-react';
+import { apiClient } from '../services/apiClient.ts';
+import type { DashboardOverviewData } from '../../../../packages/shared-types/src/index.ts';
+import { FocusTimerWidget } from '../components/ui/FocusTimerWidget.tsx';
+import { EmptyState } from '../components/ui/EmptyState.tsx';
 
-export const FocusPage: React.FC = () => {
-  const [secondsLeft, setSecondsLeft] = useState(25 * 60);
-  const [isRunning, setIsRunning] = useState(false);
-  const [mode, setMode] = useState<'POMODORO' | 'DEEP_WORK' | 'EXAM_PREP'>('POMODORO');
+interface FocusPageProps {
+  onSessionLogged?: () => void;
+  autoStart?: boolean;
+  onAutoStartConsumed?: () => void;
+}
+
+export const FocusPage: React.FC<FocusPageProps> = ({
+  onSessionLogged,
+  autoStart = false,
+  onAutoStartConsumed,
+}) => {
+  const [overview, setOverview] = useState<DashboardOverviewData | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const loadSessions = useCallback(async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const data = await apiClient.getOverview();
+      setOverview(data);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Unable to load focus session history.');
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
   useEffect(() => {
-    let interval: NodeJS.Timeout | null = null;
-    if (isRunning && secondsLeft > 0) {
-      interval = setInterval(() => {
-        setSecondsLeft(prev => prev - 1);
-      }, 1000);
-    } else if (secondsLeft === 0) {
-      setIsRunning(false);
-    }
-    return () => {
-      if (interval) clearInterval(interval);
-    };
-  }, [isRunning, secondsLeft]);
+    loadSessions();
+  }, [loadSessions]);
 
-  const handleModeChange = (newMode: 'POMODORO' | 'DEEP_WORK' | 'EXAM_PREP') => {
-    setMode(newMode);
-    setIsRunning(false);
-    if (newMode === 'POMODORO') setSecondsLeft(25 * 60);
-    if (newMode === 'DEEP_WORK') setSecondsLeft(50 * 60);
-    if (newMode === 'EXAM_PREP') setSecondsLeft(90 * 60);
-  };
-
-  const handleReset = () => {
-    setIsRunning(false);
-    handleModeChange(mode);
+  const handleLogged = () => {
+    loadSessions();
+    onSessionLogged?.();
   };
 
   return (
-    <div className="max-w-xl mx-auto py-8 space-y-6">
-      <div className="text-center space-y-2">
-        <h2 className="text-3xl font-extrabold text-white">Focus Session</h2>
-        <p className="text-xs text-zinc-400">Lock distractions and synchronize study intervals with the Chrome companion</p>
+    <div className="space-y-6 pb-6">
+      <div>
+        <h1 className="font-display text-2xl sm:text-3xl font-extrabold text-[#142647]">
+          Focus Sessions
+        </h1>
+        <p className="text-sm text-[#4A607A] mt-1">
+          Run structured Pomodoro, Deep Study, or Exam Mock blocks while shielding distracting feeds.
+        </p>
       </div>
 
-      {/* Mode Selector */}
-      <div className="flex justify-center gap-2">
-        {(['POMODORO', 'DEEP_WORK', 'EXAM_PREP'] as const).map(m => (
-          <button
-            key={m}
-            onClick={() => handleModeChange(m)}
-            className={`px-4 py-2 rounded-xl text-xs font-semibold border transition-all cursor-pointer ${
-              mode === m
-                ? 'bg-[#b8ff3c] text-[#07060a] border-[#b8ff3c]'
-                : 'bg-[#17131f] text-zinc-400 border-[#2c2537] hover:text-white'
-            }`}
-          >
-            {m === 'POMODORO' ? 'Pomodoro (25m)' : m === 'DEEP_WORK' ? 'Deep Work (50m)' : 'Exam Prep (90m)'}
-          </button>
-        ))}
-      </div>
+      <FocusTimerWidget
+        onSessionLogged={handleLogged}
+        autoStart={autoStart}
+        onAutoStartConsumed={onAutoStartConsumed}
+      />
 
-      {/* Timer Circle Container */}
-      <div className="bg-[#17131f] border border-[#2c2537] rounded-3xl p-10 flex flex-col items-center justify-center space-y-6 shadow-2xl relative">
-        <div className="text-7xl sm:text-8xl font-bold font-mono text-white tracking-tight">
-          {formatTimerSeconds(secondsLeft)}
+      <section className="ff-card p-6 space-y-4">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Clock className="w-4 h-4 text-[#079669]" />
+            <h2 className="font-display text-lg font-bold text-[#142647]">
+              Recent Completed Focus Sessions
+            </h2>
+          </div>
+          {overview && (
+            <span className="text-xs font-bold text-[#079669] tabular-nums">
+              {overview.focusMinutesToday} min logged today
+            </span>
+          )}
         </div>
 
-        <div className="flex items-center gap-3">
-          <button
-            onClick={() => setIsRunning(!isRunning)}
-            className={`px-8 py-3.5 rounded-2xl font-bold text-sm flex items-center gap-2 cursor-pointer transition-all shadow-lg ${
-              isRunning
-                ? 'bg-amber-500 hover:bg-amber-400 text-black'
-                : 'bg-[#b8ff3c] hover:bg-[#a6eb2f] text-[#07060a]'
-            }`}
-          >
-            {isRunning ? <Pause className="w-5 h-5" /> : <Play className="w-5 h-5" />}
-            {isRunning ? 'Pause' : 'Start Focus'}
-          </button>
-
-          <button
-            onClick={handleReset}
-            className="p-3.5 bg-[#241a31] hover:bg-[#2d213e] text-zinc-300 rounded-2xl border border-white/10 cursor-pointer"
-            title="Reset Timer"
-          >
-            <RotateCcw className="w-5 h-5" />
-          </button>
-        </div>
-
-        {/* Protection Pill */}
-        <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-[#0c0a10] border border-white/5 text-xs text-zinc-400">
-          <ShieldCheck className="w-4 h-4 text-[#b8ff3c]" />
-          <span>Distraction Shield Active: Instagram & YouTube Shorts blocked</span>
-        </div>
-      </div>
+        {loading && !overview ? (
+          <EmptyState
+            variant="loading"
+            title="Loading session log"
+            description="Fetching your recent study blocks..."
+          />
+        ) : error ? (
+          <EmptyState
+            variant="error"
+            title="Could not load session history"
+            description={error}
+            actionLabel="Retry"
+            onAction={loadSessions}
+          />
+        ) : !overview || overview.recentSessions.length === 0 ? (
+          <EmptyState
+            variant="empty"
+            title="No focus sessions logged yet"
+            description="Start a 25-minute Pomodoro above to earn XP and build your daily study streak."
+          />
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            {overview.recentSessions.map((session) => (
+              <div
+                key={session.id}
+                className="p-4 rounded-2xl bg-[#F7FCFA] border border-[#E1EEE9] flex items-center justify-between gap-3"
+              >
+                <div className="flex items-start gap-3">
+                  <div className="w-9 h-9 rounded-xl bg-[#E9F9F2] text-[#079669] flex items-center justify-center shrink-0">
+                    <CheckCircle2 className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm font-bold text-[#142647]">{session.subject}</span>
+                      {session.isDemo && (
+                        <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-[#EBF3FF] text-[#2563EB]">
+                          [DEMO]
+                        </span>
+                      )}
+                    </div>
+                    <div className="text-xs text-[#5A708D] tabular-nums">
+                      {session.mode.replace('_', ' ')} • {session.durationMinutes} min •{' '}
+                      {new Date(session.completedAt).toLocaleTimeString([], {
+                        hour: '2-digit',
+                        minute: '2-digit',
+                      })}
+                    </div>
+                  </div>
+                </div>
+                <div className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-[#DDF7EC] text-[#079669] text-xs font-bold tabular-nums shrink-0">
+                  <Award className="w-3.5 h-3.5" />
+                  <span>+{session.xpEarned} XP</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </section>
     </div>
   );
 };

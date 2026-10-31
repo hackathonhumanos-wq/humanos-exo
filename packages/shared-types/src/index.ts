@@ -468,3 +468,142 @@ export interface InstitutionalCohortSummary {
   kAnonymityPassed: boolean;
   dataPrivacyNote: string;
 }
+
+// -------------------------------------------------------------
+// Light Theme Redesign: Overview, Screen Time, Reels & Shorts
+// Analytics, User Goals, Focus Session Logs & Privacy Consent
+// -------------------------------------------------------------
+
+export type DetectionConfidence = 'HIGH' | 'MEDIUM' | 'LOW';
+
+export interface ReelsPlatformBreakdown {
+  platform: 'INSTAGRAM_REELS' | 'YOUTUBE_SHORTS' | 'FACEBOOK_REELS';
+  label: string;
+  shortLabel: string;
+  estimatedInteractions: number;
+  estimatedMinutes: number;
+  sharePercent: number;
+  color: string;
+  detectionMethod: string;
+  confidence: DetectionConfidence;
+}
+
+export interface ReelsDailyTrendPoint {
+  date: string;
+  dayLabel: string;
+  reelsEstimated: number;
+  shortsEstimated: number;
+  facebookEstimated: number;
+  totalEstimated: number;
+  estimatedMinutes: number;
+}
+
+export interface ReelsTrackingHistoryItem {
+  id: string;
+  platform: 'INSTAGRAM_REELS' | 'YOUTUBE_SHORTS' | 'FACEBOOK_REELS';
+  platformLabel: string;
+  estimatedInteractions: number;
+  estimatedMinutes: number;
+  detectedAt: string;
+  confidence: DetectionConfidence;
+  detectionSignal: string;
+  isDemo?: boolean;
+  correctedByUser?: boolean;
+}
+
+export interface ReelsSettingsState {
+  dailyInteractionLimit: number;
+  dailyMinutesLimit: number;
+  trackingPaused: boolean;
+  gentleNudgeThreshold: number;
+  updatedAt: string;
+}
+
+export interface ReelsAnalyticsSummary {
+  todayTotalEstimatedInteractions: number;
+  todayEstimatedReels: number;
+  todayEstimatedShorts: number;
+  todayEstimatedFacebookReels: number;
+  todayEstimatedMinutes: number;
+  vsLastWeekPercent: number;
+  weeklyTotalEstimatedInteractions: number;
+  weeklyEstimatedMinutes: number;
+  sparkline7d: number[];
+  platformBreakdown: ReelsPlatformBreakdown[];
+  dailyTrends: ReelsDailyTrendPoint[];
+  settings: ReelsSettingsState;
+  coverage: {
+    supportedPlatforms: string[];
+    unsupportedContexts: string[];
+    browserExtensionConnected: boolean;
+    permissionStatus: 'GRANTED' | 'PAUSED_BY_USER' | 'EXTENSION_NOT_DETECTED';
+    coveragePercentEstimate: number;
+    ethicalDisclaimer: string;
+  };
+  history: ReelsTrackingHistoryItem[];
+}
+
+export interface WeeklyFocusDayPoint {
+  dayLabel: string;
+  date: string;
+  focusHours: number;
+  screenHours: number;
+  focusMinutes: number;
+  screenMinutes: number;
+}
+
+export interface UserGoalItem {
+  id: string;
+  title: string;
+  category: 'FOCUS_MINUTES' | 'REELS_CAP' | 'SCREEN_TIME_CAP' | 'STUDY_SESSIONS';
+  currentValue: number;
+  targetValue: number;
+  unit: string;
+  isInverseCap: boolean;
+  isActive: boolean;
+}
+
+export interface PrivacyConsentState {
+  consentShareWithParent: boolean;
+  consentShareWithCounsellor: boolean;
+  consentExtensionTelemetry: boolean;
+  consentAiProductivityAnalysis: boolean;
+  trackingPaused: boolean;
+  updatedAt: string;
+}
+
+export interface FocusSessionLogRecord {
+  id: string;
+  subject: string;
+  mode: 'POMODORO' | 'DEEP_WORK' | 'EXAM_PREP';
+  durationMinutes: number;
+  xpEarned: number;
+  completedAt: string;
+  isDemo?: boolean;
+}
+
+export interface DashboardOverviewData {
+  studentName: string;
+  studentFullName: string;
+  studentRoleLabel: string;
+  focusMinutesToday: number;
+  focusVsLastWeekPercent: number;
+  focusSparkline7d: number[];
+  screenMinutesToday: number;
+  screenVsLastWeekPercent: number;
+  screenSparkline7d: number[];
+  dailyGoalPercent: number;
+  dailyFocusTargetMinutes: number;
+  completedSessionsToday: number;
+  weeklyOverview: WeeklyFocusDayPoint[];
+  coachHeroQuote: string;
+  coachRecommendation: {
+    headline: string;
+    detail: string;
+    suggestedDurationMinutes: number;
+    confidenceScore: number;
+  };
+  recentSessions: FocusSessionLogRecord[];
+  goals: UserGoalItem[];
+}
+

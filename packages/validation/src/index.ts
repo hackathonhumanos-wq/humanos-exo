@@ -41,6 +41,43 @@ export const privacyConsentSchema = z.object({
   consentShareWithCounsellor: z.boolean().default(false),
   consentExtensionTelemetry: z.boolean().default(true),
   consentAiProductivityAnalysis: z.boolean().default(true),
+  trackingPaused: z.boolean().optional(),
+});
+
+export const reelsSettingsUpdateSchema = z.object({
+  dailyInteractionLimit: z.number().int().min(5).max(500).optional(),
+  dailyMinutesLimit: z.number().int().min(5).max(300).optional(),
+  trackingPaused: z.boolean().optional(),
+  gentleNudgeThreshold: z.number().int().min(5).max(200).optional(),
+});
+
+export const reelsDataCorrectionSchema = z.object({
+  historyId: z.string().min(1),
+  action: z.enum(['ADJUST', 'DELETE']),
+  adjustedInteractions: z.number().int().min(0).max(500).optional(),
+  reason: z.string().max(240).optional(),
+});
+
+export const focusSessionCompleteSchema = z.object({
+  subject: z.string().min(1).max(120).default('General Study'),
+  mode: z.enum(['POMODORO', 'DEEP_WORK', 'EXAM_PREP']).default('POMODORO'),
+  durationMinutes: z.number().int().min(1).max(240),
+});
+
+export const goalUpsertSchema = z.object({
+  id: z.string().optional(),
+  title: z.string().min(3).max(120),
+  category: z.enum(['FOCUS_MINUTES', 'REELS_CAP', 'SCREEN_TIME_CAP', 'STUDY_SESSIONS']),
+  targetValue: z.number().int().min(1).max(1440),
+  isActive: z.boolean().default(true),
+});
+
+export const studySlotCreateSchema = z.object({
+  subject: z.string().min(1).max(100),
+  topic: z.string().min(1).max(160),
+  durationMinutes: z.number().int().min(10).max(180).default(45),
+  timeSlot: z.string().min(3).max(40).optional(),
+  recommendedMode: z.enum(['POMODORO', 'DEEP_WORK', 'ACTIVE_RECALL']).default('POMODORO'),
 });
 
 // Phase 9 & 10 Validation Schemas
@@ -60,7 +97,7 @@ export const studyPlanGenerateSchema = z.object({
       urgencyLevel: z.enum(['LOW', 'MEDIUM', 'HIGH', 'CRITICAL']),
       targetHoursPerWeek: z.number().min(1).max(40),
     })
-  ).min(1),
+  ).min(1).optional(),
 });
 
 export const subscriptionCheckoutSchema = z.object({
@@ -94,6 +131,11 @@ export type LoginInput = z.infer<typeof loginSchema>;
 export type ReelStatIngestInput = z.infer<typeof reelStatIngestSchema>;
 export type FocusSessionStartInput = z.infer<typeof focusSessionStartSchema>;
 export type PrivacyConsentInput = z.infer<typeof privacyConsentSchema>;
+export type ReelsSettingsUpdateInput = z.infer<typeof reelsSettingsUpdateSchema>;
+export type ReelsDataCorrectionInput = z.infer<typeof reelsDataCorrectionSchema>;
+export type FocusSessionCompleteInput = z.infer<typeof focusSessionCompleteSchema>;
+export type GoalUpsertInput = z.infer<typeof goalUpsertSchema>;
+export type StudySlotCreateInput = z.infer<typeof studySlotCreateSchema>;
 export type FeedbackInput = z.infer<typeof feedbackSchema>;
 export type StudyPlanGenerateInput = z.infer<typeof studyPlanGenerateSchema>;
 export type SubscriptionCheckoutInput = z.infer<typeof subscriptionCheckoutSchema>;

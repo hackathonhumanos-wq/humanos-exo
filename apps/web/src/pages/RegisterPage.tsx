@@ -1,105 +1,141 @@
+/**
+ * @file apps/web/src/pages/RegisterPage.tsx
+ * @description Light-theme Student Account Registration page with validation and opt-in privacy notice
+ */
 import React, { useState } from 'react';
-import { UserPlus, Lock, Mail, User, ShieldCheck } from 'lucide-react';
+import { ArrowRight, ShieldCheck } from 'lucide-react';
+import { FocusFlowLogo } from '../components/ui/BrandIllustrations.tsx';
 
-export const RegisterPage: React.FC<{ onNavigate?: (page: string) => void }> = ({ onNavigate }) => {
+interface RegisterPageProps {
+  onNavigate: (page: string) => void;
+}
+
+export const RegisterPage: React.FC<RegisterPageProps> = ({ onNavigate }) => {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [role, setRole] = useState<'STUDENT' | 'PARENT' | 'COUNSELLOR'>('STUDENT');
+  const [consentTerms, setConsentTerms] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    onNavigate?.('dashboard');
+    setError(null);
+    if (name.trim().length < 2) {
+      setError('Please enter your full name.');
+      return;
+    }
+    if (!email.includes('@')) {
+      setError('Please enter a valid student email address.');
+      return;
+    }
+    if (password.length < 8) {
+      setError('Choose a password with at least 8 characters.');
+      return;
+    }
+    if (!consentTerms) {
+      setError('Please confirm the privacy-first student data terms.');
+      return;
+    }
+    onNavigate('dashboard');
   };
 
   return (
-    <div className="max-w-md mx-auto py-12 px-4">
-      <div className="bg-[#17131f] border border-[#2c2537] rounded-3xl p-6 sm:p-8 space-y-6 shadow-2xl">
-        <div className="text-center space-y-1">
-          <h2 className="text-2xl font-extrabold text-white">Create Account</h2>
-          <p className="text-xs text-zinc-400">Join FOCUSFLOW to build distraction-free study habits</p>
+    <div className="min-h-[82vh] flex items-center justify-center py-8">
+      <div className="ff-card max-w-md w-full p-7 sm:p-9 space-y-6">
+        <div className="space-y-2">
+          <FocusFlowLogo />
+          <h1 className="font-display text-2xl font-extrabold text-[#142647] pt-3">
+            Create Your Student Account
+          </h1>
+          <p className="text-xs text-[#5A708D]">
+            Build healthier focus habits with full control over your privacy.
+          </p>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
+        {error && (
+          <div role="alert" className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-xs font-medium text-rose-700">
+            {error}
+          </div>
+        )}
+
+        <form onSubmit={handleSubmit} className="space-y-4" noValidate>
           <div>
-            <label className="text-xs font-mono text-zinc-400 block mb-1">Full Name</label>
-            <div className="relative">
-              <User className="w-4 h-4 text-zinc-500 absolute left-3 top-3" />
-              <input
-                type="text"
-                required
-                value={name}
-                onChange={e => setName(e.target.value)}
-                placeholder="Alex Rivera"
-                className="w-full pl-9 pr-3 py-2.5 bg-[#0c0a10] border border-[#2c2537] rounded-xl text-sm text-white focus:outline-none focus:border-[#b8ff3c]"
-              />
-            </div>
+            <label htmlFor="reg-name" className="block text-xs font-bold text-[#334B68] mb-1">
+              Full Name
+            </label>
+            <input
+              id="reg-name"
+              type="text"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="Adarsh Sharma"
+              className="w-full px-3.5 py-2.5 rounded-xl bg-[#F7FCFA] border border-[#E1EEE9] text-sm text-[#142647] focus:bg-white focus:border-[#079669] focus:outline-none"
+              required
+            />
           </div>
 
           <div>
-            <label className="text-xs font-mono text-zinc-400 block mb-1">Email Address</label>
-            <div className="relative">
-              <Mail className="w-4 h-4 text-zinc-500 absolute left-3 top-3" />
-              <input
-                type="email"
-                required
-                value={email}
-                onChange={e => setEmail(e.target.value)}
-                placeholder="alex@university.edu"
-                className="w-full pl-9 pr-3 py-2.5 bg-[#0c0a10] border border-[#2c2537] rounded-xl text-sm text-white focus:outline-none focus:border-[#b8ff3c]"
-              />
-            </div>
+            <label htmlFor="reg-email" className="block text-xs font-bold text-[#334B68] mb-1">
+              University or School Email
+            </label>
+            <input
+              id="reg-email"
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="you@university.edu"
+              className="w-full px-3.5 py-2.5 rounded-xl bg-[#F7FCFA] border border-[#E1EEE9] text-sm text-[#142647] focus:bg-white focus:border-[#079669] focus:outline-none"
+              required
+            />
           </div>
 
           <div>
-            <label className="text-xs font-mono text-zinc-400 block mb-1">Role</label>
-            <div className="grid grid-cols-3 gap-2">
-              {(['STUDENT', 'PARENT', 'COUNSELLOR'] as const).map(r => (
-                <button
-                  type="button"
-                  key={r}
-                  onClick={() => setRole(r)}
-                  className={`py-2 text-xs font-semibold rounded-xl border transition-all ${
-                    role === r
-                      ? 'bg-[#b8ff3c] text-[#07060a] border-[#b8ff3c]'
-                      : 'bg-[#0c0a10] text-zinc-400 border-[#2c2537] hover:text-white'
-                  }`}
-                >
-                  {r}
-                </button>
-              ))}
-            </div>
+            <label htmlFor="reg-password" className="block text-xs font-bold text-[#334B68] mb-1">
+              Password (min. 8 characters)
+            </label>
+            <input
+              id="reg-password"
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder="Create a strong password"
+              className="w-full px-3.5 py-2.5 rounded-xl bg-[#F7FCFA] border border-[#E1EEE9] text-sm text-[#142647] focus:bg-white focus:border-[#079669] focus:outline-none"
+              required
+            />
           </div>
 
-          <div>
-            <label className="text-xs font-mono text-zinc-400 block mb-1">Password</label>
-            <div className="relative">
-              <Lock className="w-4 h-4 text-zinc-500 absolute left-3 top-3" />
-              <input
-                type="password"
-                required
-                value={password}
-                onChange={e => setPassword(e.target.value)}
-                placeholder="••••••••"
-                className="w-full pl-9 pr-3 py-2.5 bg-[#0c0a10] border border-[#2c2537] rounded-xl text-sm text-white focus:outline-none focus:border-[#b8ff3c]"
-              />
-            </div>
-          </div>
+          <label className="flex items-start gap-2.5 text-xs text-[#4A607A] cursor-pointer">
+            <input
+              type="checkbox"
+              checked={consentTerms}
+              onChange={(e) => setConsentTerms(e.target.checked)}
+              className="mt-0.5 accent-[#079669]"
+            />
+            <span>
+              I understand FOCUSFLOW uses local, pauseable activity estimation and never shares data with parents or counsellors without explicit opt-in.
+            </span>
+          </label>
 
           <button
             type="submit"
-            className="w-full py-3 bg-[#b8ff3c] hover:bg-[#a6eb2f] text-[#07060a] font-bold rounded-xl text-sm transition-all cursor-pointer flex items-center justify-center gap-2"
+            className="w-full py-3 rounded-xl bg-[#079669] hover:bg-[#057A55] text-white text-sm font-bold inline-flex items-center justify-center gap-2 cursor-pointer"
           >
-            <UserPlus className="w-4 h-4" />
-            Create Account
+            <span>Start Studying Smarter</span>
+            <ArrowRight className="w-4 h-4" />
           </button>
         </form>
 
-        <div className="text-center text-xs text-zinc-400">
-          Already registered?{' '}
+        <div className="p-3 rounded-xl bg-[#EAF9F2] border border-[#CBEFE0] flex items-center gap-2 text-[11px] text-[#067652]">
+          <ShieldCheck className="w-4 h-4 text-[#079669] shrink-0" />
+          <span>Zero keystrokes, screenshots, or private messages are ever collected.</span>
+        </div>
+
+        <div className="text-center text-xs text-[#5A708D] pt-1">
+          Already have an account?{' '}
           <button
-            onClick={() => onNavigate?.('login')}
-            className="text-[#b8ff3c] hover:underline font-semibold"
+            type="button"
+            onClick={() => onNavigate('login')}
+            className="font-bold text-[#079669] hover:underline cursor-pointer"
           >
             Sign In
           </button>

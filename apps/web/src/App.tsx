@@ -1,29 +1,14 @@
-import React, { useState } from 'react';
-import {
-  LayoutDashboard,
-  Clock,
-  BarChart3,
-  Flame,
-  Sparkles,
-  Target,
-  Users,
-  User,
-  Settings,
-  Home,
-  Menu,
-  X,
-  Trophy,
-  Award,
-  Medal,
-  UserCheck,
-  Zap,
-  BookOpen,
-  HeartHandshake,
-  CreditCard,
-  Bot,
-  GraduationCap,
-  MessageSquarePlus,
-} from 'lucide-react';
+/**
+ * @file apps/web/src/App.tsx
+ * @description FOCUSFLOW Light-Theme Responsive Application Shell
+ */
+import React, { useState, useEffect, useCallback } from 'react';
+import { apiClient } from './services/apiClient.ts';
+import type { LevelProgress } from '../../../packages/shared-types/src/index.ts';
+
+import { Sidebar, type NavPageId } from './components/ui/Sidebar.tsx';
+import { Header } from './components/ui/Header.tsx';
+import { FeedbackModal } from './components/feedback/FeedbackModal.tsx';
 
 import { LandingPage } from './pages/LandingPage.tsx';
 import { LoginPage } from './pages/LoginPage.tsx';
@@ -43,259 +28,204 @@ import { StreakCalendarPage } from './pages/StreakCalendarPage.tsx';
 import { ChallengesPage } from './pages/ChallengesPage.tsx';
 import { FriendsPage } from './pages/FriendsPage.tsx';
 import { LeaderboardPage } from './pages/LeaderboardPage.tsx';
-import { NotificationCenter } from './components/notifications/NotificationCenter.tsx';
 import { StudyPlannerPage } from './pages/StudyPlannerPage.tsx';
 import { WellbeingInsightsPage } from './pages/WellbeingInsightsPage.tsx';
 import { SubscriptionPage } from './pages/SubscriptionPage.tsx';
 import { AIAgentCenterPage } from './pages/AIAgentCenterPage.tsx';
 import { AutomationsPage } from './pages/AutomationsPage.tsx';
 import { InstitutionalPortalPage } from './pages/InstitutionalPortalPage.tsx';
-import { FeedbackModal } from './components/feedback/FeedbackModal.tsx';
-
-type NavPage =
-  | 'landing'
-  | 'login'
-  | 'register'
-  | 'dashboard'
-  | 'focus'
-  | 'analytics'
-  | 'reels'
-  | 'ai-coach'
-  | 'goals'
-  | 'study-planner'
-  | 'wellbeing-insights'
-  | 'subscriptions'
-  | 'ai-agents'
-  | 'automations'
-  | 'institutional'
-  | 'gamification'
-  | 'achievements'
-  | 'streaks'
-  | 'challenges'
-  | 'groups'
-  | 'friends'
-  | 'leaderboards'
-  | 'profile'
-  | 'settings';
 
 export default function WebApp() {
-  const [currentPage, setCurrentPage] = useState<NavPage>('dashboard');
+  const [currentPage, setCurrentPage] = useState<NavPageId>('dashboard');
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [feedbackModalOpen, setFeedbackModalOpen] = useState(false);
+  const [autoStartFocus, setAutoStartFocus] = useState(false);
 
-  const navItems: { id: NavPage; label: string; icon: React.FC<{ className?: string }>; badge?: string }[] = [
-    { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
-    { id: 'focus', label: 'Focus Timer', icon: Clock },
-    { id: 'reels', label: 'Reel Guard', icon: Flame },
-    { id: 'analytics', label: 'Analytics', icon: BarChart3 },
-    { id: 'ai-coach', label: 'AI Coach', icon: Sparkles },
-    { id: 'goals', label: 'Daily Goals', icon: Target },
-    { id: 'study-planner', label: 'Adaptive Study Plan', icon: BookOpen, badge: 'Phase 9' },
-    { id: 'wellbeing-insights', label: 'Wellbeing Intelligence', icon: HeartHandshake, badge: 'Phase 9' },
-    { id: 'subscriptions', label: 'Student Pricing & SaaS', icon: CreditCard, badge: 'Phase 9' },
-    { id: 'ai-agents', label: 'AI Agent Swarm', icon: Bot, badge: 'Phase 10' },
-    { id: 'automations', label: 'Smart Automations', icon: Zap, badge: 'Phase 10' },
-    { id: 'institutional', label: 'Counsellor Portal', icon: GraduationCap, badge: 'Phase 10' },
-    { id: 'gamification', label: 'XP & Progression', icon: Trophy, badge: 'Phase 6' },
-    { id: 'achievements', label: 'Badges Gallery', icon: Award },
-    { id: 'streaks', label: 'Streak Calendar', icon: Flame },
-    { id: 'challenges', label: 'Focus Challenges', icon: Target },
-    { id: 'groups', label: 'Study Groups', icon: Users },
-    { id: 'friends', label: 'Friends Circle', icon: UserCheck },
-    { id: 'leaderboards', label: 'Leaderboard', icon: Medal },
-    { id: 'profile', label: 'Profile', icon: User },
-    { id: 'settings', label: 'Settings', icon: Settings },
-  ];
+  const [studentName, setStudentName] = useState('Adarsh');
+  const [levelProgress, setLevelProgress] = useState<LevelProgress | null>(null);
+  const [trackingPaused, setTrackingPaused] = useState(false);
 
+  const refreshShellState = useCallback(async () => {
+    const [overviewRes, gamificationRes, privacyRes] = await Promise.allSettled([
+      apiClient.getOverview(),
+      apiClient.getGamificationProfile(),
+      apiClient.getPrivacyConsent(),
+    ]);
+    if (overviewRes.status === 'fulfilled') {
+      setStudentName(overviewRes.value.studentName || 'Adarsh');
+    }
+    if (gamificationRes.status === 'fulfilled') {
+      setLevelProgress(gamificationRes.value.levelProgress);
+    }
+    if (privacyRes.status === 'fulfilled') {
+      setTrackingPaused(privacyRes.value.trackingPaused);
+    }
+  }, []);
 
-  const handleNavigate = (page: string) => {
-    setCurrentPage(page as NavPage);
-    setMobileMenuOpen(false);
+  useEffect(() => {
+    refreshShellState();
+  }, [refreshShellState]);
+
+  const handleToggleTrackingPause = async () => {
+    const nextPaused = !trackingPaused;
+    setTrackingPaused(nextPaused);
+    try {
+      const currentConsent = await apiClient.getPrivacyConsent();
+      await Promise.all([
+        apiClient.updatePrivacyConsent({
+          ...currentConsent,
+          trackingPaused: nextPaused,
+        }),
+        apiClient.updateReelsSettings({
+          trackingPaused: nextPaused,
+        }),
+      ]);
+      await refreshShellState();
+    } catch {
+      setTrackingPaused(!nextPaused);
+    }
   };
 
+  const handleNavigate = (page: string) => {
+    setCurrentPage(page as NavPageId);
+    setMobileMenuOpen(false);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const handleStartFocusSession = () => {
+    setAutoStartFocus(true);
+    setCurrentPage('focus');
+    setMobileMenuOpen(false);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const handleLogout = () => {
+    try {
+      window.localStorage.removeItem('focusflow_session');
+    } catch {
+      // Ignore storage access restrictions in sandboxed frames
+    }
+    setCurrentPage('login');
+    setMobileMenuOpen(false);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const isAuthStandalone = currentPage === 'login' || currentPage === 'register';
+
   return (
-    <div className="min-h-screen bg-[#0c0a10] text-[#f5f1e8] flex flex-col font-sans selection:bg-[#b8ff3c] selection:text-[#07060a]">
-      {/* Top Header */}
-      <header className="sticky top-0 z-40 bg-[#0c0a10]/90 backdrop-blur-md border-b border-[#2c2537] px-4 sm:px-6 py-3">
-        <div className="max-w-7xl mx-auto flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <button
-              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="lg:hidden p-2 text-zinc-400 hover:text-white"
-            >
-              {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
-            </button>
-            <div
-              onClick={() => setCurrentPage('landing')}
-              className="flex items-center gap-2.5 cursor-pointer group"
-            >
-              <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-[#b8ff3c] to-[#49e6ff] p-[1.5px]">
-                <div className="w-full h-full bg-[#0c0a10] rounded-[10px] flex items-center justify-center font-extrabold text-[#b8ff3c] text-xs font-mono">
-                  FF
-                </div>
-              </div>
-              <span className="font-extrabold text-lg tracking-tight text-white">FOCUSFLOW</span>
-              <span className="text-[10px] font-mono text-[#b8ff3c] bg-[#b8ff3c]/10 px-2 py-0.5 rounded-full hidden sm:inline border border-[#b8ff3c]/20">
-                AI Focus & Study Platform
-              </span>
+    <div className="min-h-screen bg-[#F8FCFA] text-[#142447] relative flex overflow-x-clip">
+      {/* Lightweight SVG organic pale-mint decorative waves matching reference image */}
+      <div
+        className="pointer-events-none fixed inset-0 overflow-hidden z-0"
+        aria-hidden="true"
+      >
+        <svg
+          viewBox="0 0 1536 1024"
+          fill="none"
+          preserveAspectRatio="xMidYMid slice"
+          className="w-full h-full"
+        >
+          <path
+            d="M845 -40C915 110 1125 140 1320 95C1435 68 1510 15 1580 -20V380C1440 420 1245 360 1110 250C985 148 805 60 845 -40Z"
+            fill="#E4F7EE"
+            fillOpacity="0.65"
+          />
+          <path
+            d="M780 390C930 245 1210 260 1420 340C1510 375 1560 430 1590 480V920C1410 960 1120 905 940 760C760 615 655 510 780 390Z"
+            fill="#E7F8F0"
+            fillOpacity="0.55"
+          />
+          <path
+            d="M-60 880C85 835 235 885 360 955C460 1010 580 1035 690 1045H-60V880Z"
+            fill="#E2F6EC"
+            fillOpacity="0.7"
+          />
+        </svg>
+      </div>
 
-            </div>
-          </div>
+      {/* Left Sidebar (hidden on standalone login/register screens) */}
+      {!isAuthStandalone && (
+        <Sidebar
+          currentPage={currentPage}
+          onNavigate={(page) => handleNavigate(page)}
+          levelProgress={levelProgress}
+          mobileOpen={mobileMenuOpen}
+          onCloseMobile={() => setMobileMenuOpen(false)}
+        />
+      )}
 
-          <div className="flex items-center gap-3">
-            {/* Quick XP & Level Pill */}
-            <button
-              onClick={() => setCurrentPage('gamification')}
-              className="hidden md:flex items-center gap-2 px-3 py-1.5 rounded-xl bg-[#17131f] border border-[#2c2537] hover:border-[#b8ff3c]/40 transition-all cursor-pointer font-mono text-xs"
-              title="View XP & Progression"
-            >
-              <Trophy className="w-3.5 h-3.5 text-[#b8ff3c]" />
-              <span className="text-white font-bold">Lvl 4</span>
-              <span className="text-zinc-500">•</span>
-              <span className="text-[#b8ff3c] font-bold">840 XP</span>
-            </button>
-
-            {/* Quick Streak Pill */}
-            <button
-              onClick={() => setCurrentPage('streaks')}
-              className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#17131f] border border-[#2c2537] hover:border-amber-400/40 transition-all cursor-pointer font-mono text-xs"
-              title="View Streak Calendar"
-            >
-              <Flame className="w-3.5 h-3.5 text-amber-400 fill-current" />
-              <span className="text-amber-400 font-bold">5 Days</span>
-            </button>
-
-            {/* Notification Center */}
-            <NotificationCenter />
-
-            {/* Student Feedback Button */}
-            <button
-              onClick={() => setFeedbackModalOpen(true)}
-              className="text-xs font-mono px-3 py-1.5 rounded-xl bg-[#17131f] hover:bg-[#241a31] border border-[#2c2537] text-zinc-300 hover:text-[#b8ff3c] transition-colors flex items-center gap-1.5 cursor-pointer"
-              title="Share Feedback or Report an Issue"
-            >
-              <MessageSquarePlus className="w-3.5 h-3.5 text-[#b8ff3c]" />
-              <span className="hidden sm:inline">Feedback</span>
-            </button>
-
-            {currentPage !== 'login' && currentPage !== 'register' && (
-              <button
-                onClick={() => setCurrentPage('login')}
-                className="text-xs font-semibold px-3.5 py-1.5 rounded-xl bg-[#b8ff3c] hover:bg-[#a6eb2f] text-[#07060a] transition-all cursor-pointer"
-              >
-                Sign In
-              </button>
-            )}
-          </div>
-        </div>
-      </header>
-
-      {/* App Body with Sidebar */}
-      <div className="flex-1 max-w-7xl w-full mx-auto flex">
-        {/* Desktop Sidebar */}
-        <aside className="w-56 border-r border-[#2c2537] p-4 hidden lg:block shrink-0 space-y-1">
-          <div className="text-[11px] font-mono text-zinc-500 uppercase px-3 py-2">Navigation</div>
-          {navItems.map(item => {
-            const Icon = item.icon;
-            const isActive = currentPage === item.id;
-            return (
-              <button
-                key={item.id}
-                onClick={() => setCurrentPage(item.id)}
-                className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-medium transition-all cursor-pointer text-left ${
-                  isActive
-                    ? 'bg-[#17131f] text-[#b8ff3c] font-semibold border border-white/5 shadow-sm'
-                    : 'text-zinc-400 hover:text-zinc-200 hover:bg-white/5'
-                }`}
-              >
-                <div className="flex items-center gap-3">
-                  <Icon className={`w-4 h-4 ${isActive ? 'text-[#b8ff3c]' : 'text-zinc-500'}`} />
-                  <span>{item.label}</span>
-                </div>
-                {item.badge && (
-                  <span className="text-[9px] font-mono px-1.5 py-0.5 rounded-md bg-[#b8ff3c]/10 text-[#b8ff3c] border border-[#b8ff3c]/20">
-                    {item.badge}
-                  </span>
-                )}
-              </button>
-            );
-          })}
-        </aside>
-
-        {/* Mobile Navigation Drawer */}
-        {mobileMenuOpen && (
-          <div className="fixed inset-0 z-50 bg-black/80 lg:hidden p-4 pt-16 flex flex-col">
-            <button
-              onClick={() => setMobileMenuOpen(false)}
-              className="absolute top-4 right-4 p-2 text-zinc-400"
-            >
-              <X className="w-6 h-6" />
-            </button>
-            <div className="space-y-1 bg-[#17131f] border border-[#2c2537] rounded-2xl p-4">
-              {navItems.map(item => {
-                const Icon = item.icon;
-                const isActive = currentPage === item.id;
-                return (
-                  <button
-                    key={item.id}
-                    onClick={() => handleNavigate(item.id)}
-                    className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-medium ${
-                      isActive ? 'bg-[#b8ff3c] text-black font-bold' : 'text-zinc-400'
-                    }`}
-                  >
-                    <Icon className="w-4 h-4" />
-                    <span>{item.label}</span>
-                  </button>
-                );
-              })}
-            </div>
-          </div>
+      {/* Main Content Column */}
+      <div className="flex-1 flex flex-col min-w-0 relative z-10">
+        {!isAuthStandalone && (
+          <Header
+            studentName={studentName}
+            trackingPaused={trackingPaused}
+            onToggleTrackingPause={handleToggleTrackingPause}
+            onNavigate={(page) => handleNavigate(page)}
+            onStartFocusSession={handleStartFocusSession}
+            onLogout={handleLogout}
+            onOpenMobileMenu={() => setMobileMenuOpen(true)}
+            onOpenFeedback={() => setFeedbackModalOpen(true)}
+          />
         )}
 
-        {/* Main View Area */}
-        <main className="flex-1 p-4 sm:p-6 lg:p-8 min-w-0">
+        <main className="flex-1 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-5">
           {currentPage === 'landing' && <LandingPage onNavigate={handleNavigate} />}
           {currentPage === 'login' && <LoginPage onNavigate={handleNavigate} />}
           {currentPage === 'register' && <RegisterPage onNavigate={handleNavigate} />}
-          {currentPage === 'dashboard' && <DashboardPage onNavigate={handleNavigate} />}
-          {currentPage === 'focus' && <FocusPage />}
-          {currentPage === 'analytics' && <AnalyticsPage />}
-          {currentPage === 'reels' && <ReelsPage />}
-          {currentPage === 'ai-coach' && <AICoachPage />}
-          {currentPage === 'goals' && <GoalsPage />}
+          {currentPage === 'dashboard' && (
+            <DashboardPage
+              onNavigate={handleNavigate}
+              onStartFocusSession={handleStartFocusSession}
+              onDataMutated={refreshShellState}
+            />
+          )}
+          {currentPage === 'focus' && (
+            <FocusPage
+              onSessionLogged={refreshShellState}
+              autoStart={autoStartFocus}
+              onAutoStartConsumed={() => setAutoStartFocus(false)}
+            />
+          )}
+          {currentPage === 'analytics' && <AnalyticsPage onNavigate={handleNavigate} />}
+          {currentPage === 'reels' && <ReelsPage onSettingsChanged={refreshShellState} />}
+          {currentPage === 'ai-coach' && <AICoachPage onNavigate={handleNavigate} />}
+          {currentPage === 'goals' && <GoalsPage onGoalsChanged={refreshShellState} />}
           {currentPage === 'study-planner' && <StudyPlannerPage />}
-          {currentPage === 'wellbeing-insights' && <WellbeingInsightsPage />}
+          {currentPage === 'wellbeing-insights' && <WellbeingInsightsPage onNavigate={handleNavigate} />}
           {currentPage === 'subscriptions' && <SubscriptionPage />}
           {currentPage === 'ai-agents' && <AIAgentCenterPage />}
           {currentPage === 'automations' && <AutomationsPage />}
           {currentPage === 'institutional' && <InstitutionalPortalPage />}
-          {currentPage === 'gamification' && <GamificationPage />}
+          {currentPage === 'gamification' && <GamificationPage onXpUpdated={refreshShellState} />}
           {currentPage === 'achievements' && <AchievementsPage />}
           {currentPage === 'streaks' && <StreakCalendarPage />}
-          {currentPage === 'challenges' && <ChallengesPage />}
+          {currentPage === 'challenges' && <ChallengesPage onChallengeClaimed={refreshShellState} />}
           {currentPage === 'groups' && <GroupsPage />}
           {currentPage === 'friends' && <FriendsPage />}
           {currentPage === 'leaderboards' && <LeaderboardPage />}
-          {currentPage === 'profile' && <ProfilePage />}
-          {currentPage === 'settings' && <SettingsPage />}
+          {currentPage === 'profile' && <ProfilePage onNavigate={handleNavigate} />}
+          {currentPage === 'settings' && <SettingsPage onSettingsUpdated={refreshShellState} />}
         </main>
+
+        {!isAuthStandalone && (
+          <footer className="border-t border-[#DFEBF0] bg-white/70 py-4 px-6 text-xs text-[#52627D]">
+            <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-2">
+              <span className="font-semibold text-[#142447]">
+                FOCUSFLOW — Student Digital Wellbeing &amp; Study Focus Platform
+              </span>
+              <span>
+                Privacy-First • Ethical Short-Form Estimation • Student Opt-In Controls
+              </span>
+            </div>
+          </footer>
+        )}
       </div>
 
-      {/* Global In-App Student Feedback Modal */}
-      <FeedbackModal isOpen={feedbackModalOpen} onClose={() => setFeedbackModalOpen(false)} />
-
-
-      {/* Footer */}
-      <footer className="border-t border-[#2c2537] bg-[#0c0a10] py-4 px-6 text-center text-xs text-zinc-500">
-        <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-2">
-          <span>FOCUSFLOW — AI Productivity & Focus Coach</span>
-          <span className="font-mono text-[11px] text-zinc-400">
-            Student Digital Wellbeing Platform • Privacy-First Architecture
-          </span>
-        </div>
-      </footer>
+      <FeedbackModal
+        isOpen={feedbackModalOpen}
+        onClose={() => setFeedbackModalOpen(false)}
+      />
     </div>
   );
 }
-
-

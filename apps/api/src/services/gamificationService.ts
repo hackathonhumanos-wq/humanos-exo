@@ -43,39 +43,39 @@ export const INITIAL_ACHIEVEMENTS: AchievementItem[] = [
   {
     id: 'ach-1',
     code: 'FIRST_FOCUS_SESSION',
-    title: 'First Focus Session',
-    description: 'Complete your first verified 25-minute Pomodoro session.',
+    title: 'Focus Master',
+    description: 'Complete verified uninterrupted Pomodoro & Deep Study intervals.',
     category: 'FOCUS',
-    rarity: 'COMMON',
-    xpReward: 15,
+    rarity: 'RARE',
+    xpReward: 50,
     isUnlocked: true,
-    unlockedAt: '2026-10-25T14:30:00Z',
-    progressCurrent: 1,
-    progressTotal: 1,
+    unlockedAt: '2026-10-29T14:30:00Z',
+    progressCurrent: 10,
+    progressTotal: 10,
   },
   {
     id: 'ach-2',
     code: 'FOCUS_STARTER',
-    title: 'Focus Starter',
-    description: 'Log 5 completed focus sessions without interruptions.',
-    category: 'FOCUS',
-    rarity: 'COMMON',
-    xpReward: 30,
+    title: 'Study Champion',
+    description: 'Log 5 consecutive days of structured subject study blocks.',
+    category: 'CONSISTENCY',
+    rarity: 'RARE',
+    xpReward: 60,
     isUnlocked: true,
-    unlockedAt: '2026-10-27T18:00:00Z',
+    unlockedAt: '2026-10-28T18:00:00Z',
     progressCurrent: 5,
     progressTotal: 5,
   },
   {
     id: 'ach-3',
     code: 'DEEP_WORK_CHAMPION',
-    title: 'Deep Work Champion',
-    description: 'Complete three 50-minute deep work intervals in a single day.',
-    category: 'FOCUS',
-    rarity: 'RARE',
-    xpReward: 60,
+    title: 'Productivity Star',
+    description: 'Complete three 50-minute deep work intervals while keeping short-form limits intact.',
+    category: 'WELLBEING',
+    rarity: 'EPIC',
+    xpReward: 80,
     isUnlocked: true,
-    unlockedAt: '2026-10-29T21:15:00Z',
+    unlockedAt: '2026-10-27T21:15:00Z',
     progressCurrent: 3,
     progressTotal: 3,
   },
@@ -251,7 +251,7 @@ export const INITIAL_ACHIEVEMENTS: AchievementItem[] = [
 
 // In-Memory store for demonstration and fast state updates
 class GamificationStore {
-  private userXp: Map<string, number> = new Map([['current-user', 840]]);
+  private userXp: Map<string, number> = new Map([['current-user', 2450]]);
   private userTransactions: Map<string, XPTransactionRecord[]> = new Map([
     [
       'current-user',
@@ -370,7 +370,7 @@ class GamificationStore {
   ]);
 
   public getXp(userId: string = 'current-user'): number {
-    return this.userXp.get(userId) || 840;
+    return this.userXp.get(userId) || 2450;
   }
 
   public getTransactions(userId: string = 'current-user'): XPTransactionRecord[] {
@@ -459,41 +459,46 @@ class GamificationStore {
     return INITIAL_ACHIEVEMENTS;
   }
 
-  public getStreakInfo(userId: string = 'current-user'): StreakInfo {
-    // Generate 14-day history window for current streak of 5
+  public getStreakInfo(_userId: string = 'current-user'): StreakInfo {
     const today = new Date();
     const history: StreakDayRecord[] = [];
+    const priorConsecutiveDaysBeforeWindow = 10;
 
     for (let i = 13; i >= 0; i--) {
       const d = new Date();
       d.setDate(today.getDate() - i);
       const dateStr = d.toISOString().slice(0, 10);
 
-      let status: 'COMPLETED' | 'MISSED' | 'TODAY' | 'FUTURE' = 'COMPLETED';
-      let focusMins = 45;
-
-      if (i === 0) {
-        status = 'TODAY';
-        focusMins = 65;
-      } else if (i > 5) {
-        // days 6+ ago were either completed or missed
-        status = i === 6 ? 'MISSED' : 'COMPLETED';
-        focusMins = i === 6 ? 0 : 50;
-      }
+      const status: 'COMPLETED' | 'MISSED' | 'TODAY' | 'FUTURE' = i === 0 ? 'TODAY' : 'COMPLETED';
+      const focusMins = i === 0 ? 155 : 45 + ((i * 7) % 30);
 
       history.push({
         date: dateStr,
         status,
         focusMinutes: focusMins,
-        sessionsCount: focusMins > 0 ? Math.ceil(focusMins / 25) : 0,
+        sessionsCount: Math.max(1, Math.ceil(focusMins / 25)),
       });
     }
 
+    let consecutiveInWindow = 0;
+    for (let idx = history.length - 1; idx >= 0; idx--) {
+      if (history[idx].status === 'COMPLETED' || history[idx].status === 'TODAY') {
+        consecutiveInWindow += 1;
+      } else {
+        break;
+      }
+    }
+
+    const currentStreak =
+      consecutiveInWindow === history.length
+        ? consecutiveInWindow + priorConsecutiveDaysBeforeWindow
+        : consecutiveInWindow;
+
     return {
-      currentStreak: 5,
-      longestStreak: 12,
+      currentStreak,
+      longestStreak: Math.max(28, currentStreak),
       lastActiveDate: today.toISOString().slice(0, 10),
-      isActiveToday: true,
+      isActiveToday: history[history.length - 1]?.focusMinutes > 0,
       streakFreezeAvailable: true,
       history,
     };

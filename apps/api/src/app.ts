@@ -3,7 +3,6 @@ import cors from 'cors';
 import helmet from 'helmet';
 import { apiRouter } from './routes/index.ts';
 import { errorHandler, notFoundHandler } from './middleware/errorMiddleware.ts';
-import { config } from './config/environment.ts';
 
 export function createApp(): Application {
   const app = express();
@@ -11,15 +10,18 @@ export function createApp(): Application {
   // 1. Security Headers
   app.use(
     helmet({
-      contentSecurityPolicy: false, // Allows flexible integration in dev and extension
+      contentSecurityPolicy: false,
       crossOriginEmbedderPolicy: false,
+      crossOriginOpenerPolicy: false,
+      crossOriginResourcePolicy: false,
+      frameguard: false,
     })
   );
 
   // 2. Cross-Origin Resource Sharing
   app.use(
     cors({
-      origin: [config.webOrigin, 'chrome-extension://*'],
+      origin: true,
       credentials: true,
       methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
       allowedHeaders: ['Content-Type', 'Authorization'],

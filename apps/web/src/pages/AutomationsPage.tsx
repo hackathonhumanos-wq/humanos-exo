@@ -1,289 +1,215 @@
 /**
  * @file apps/web/src/pages/AutomationsPage.tsx
- * @description Phase 10: Smart Focus Automations & Trigger-Action Workflow Engine
+ * @description Light-theme Smart Study Automations page connected to /api/v1/automations
  */
-import React, { useState, useEffect } from 'react';
-import {
-  Zap,
-  Sliders,
-  Check,
-  Plus,
-  Play,
-  Trash2,
-  Clock,
-  Sparkles,
-  ToggleLeft,
-  ToggleRight,
-  ShieldAlert,
-  Target,
-  Bell,
-} from 'lucide-react';
-import {
+import React, { useState, useEffect, useCallback } from 'react';
+import { Zap, Plus, Trash2 } from 'lucide-react';
+import { apiClient } from '../services/apiClient.ts';
+import type {
   AutomationRule,
   AutomationTriggerType,
   AutomationActionType,
 } from '../../../../packages/shared-types/src/index.ts';
+import { EmptyState } from '../components/ui/EmptyState.tsx';
+import { ConfirmDialog } from '../components/ui/ConfirmDialog.tsx';
 
 export const AutomationsPage: React.FC = () => {
   const [rules, setRules] = useState<AutomationRule[]>([]);
-  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [name, setName] = useState('');
-  const [description, setDescription] = useState('');
   const [trigger, setTrigger] = useState<AutomationTriggerType>('REEL_COUNT_EXCEEDED');
-  const [triggerThreshold, setTriggerThreshold] = useState<number>(20);
+  const [threshold, setThreshold] = useState(30);
   const [action, setAction] = useState<AutomationActionType>('SEND_DISMISSABLE_NUDGE');
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [ruleToDelete, setRuleToDelete] = useState<AutomationRule | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    fetchRules();
+  const loadRules = useCallback(async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const list = await apiClient.getAutomations();
+      setRules(list);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Unable to load automations.');
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
-  const fetchRules = async () => {
-    try {
-      const res = await fetch('/api/v1/automations').then(r => r.json());
-      if (res.success) setRules(res.data);
-    } catch (e) {
-      console.error(e);
-    }
+  useEffect(() => {
+    loadRules();
+  }, [loadRules]);
+
+  const handleToggle = async (id: string) => {
+    const updated = await apiClient.toggleAutomation(id);
+    setRules((prev) => prev.map((r) => (r.id === id ? updated : r)));
   };
 
-  const handleToggle = async (ruleId: string) => {
-    try {
-      const res = await fetch(`/api/v1/automations/${ruleId}/toggle`, { method: 'PATCH' }).then(r => r.json());
-      if (res.success) {
-        setRules(rules.map(r => (r.id === ruleId ? res.data : r)));
-      }
-    } catch (e) {
-      console.error(e);
-    }
-  };
-
-  const handleDelete = async (ruleId: string) => {
-    try {
-      const res = await fetch(`/api/v1/automations/${ruleId}`, { method: 'DELETE' }).then(r => r.json());
-      if (res.success) {
-        setRules(rules.filter(r => r.id !== ruleId));
-      }
-    } catch (e) {
-      console.error(e);
-    }
-  };
-
-  const handleCreateRule = async (e: React.FormEvent) => {
+  const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!name || !description) return;
+    if (!name.trim()) return;
+    const created = await apiClient.createAutomation({
+      name: name.trim(),
+      description: `Automated student rule when ${trigger} reaches ${threshold}.`,
+      trigger,
+      triggerThreshold: threshold,
+      action,
+    });
+    setRules((prev) => [created, ...prev]);
+    setName('');
+  };
 
-    try {
-      setIsSubmitting(true);
-      const res = await fetch('/api/v1/automations', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name, description, trigger, triggerThreshold: Number(triggerThreshold), action }),
-      }).then(r => r.json());
-
-      if (res.success) {
-        setRules([...rules, res.data]);
-        setShowCreateModal(false);
-        setName('');
-        setDescription('');
-      }
-    } catch (e) {
-      console.error(e);
-    } finally {
-      setIsSubmitting(false);
-    }
+  const handleConfirmDelete = async () => {
+    if (!ruleToDelete) return;
+    await apiClient.deleteAutomation(ruleToDelete.id);
+    setRules((prev) => prev.filter((r) => r.id !== ruleToDelete.id));
+    setRuleToDelete(null);
   };
 
   return (
-    <div className="space-y-8 max-w-7xl mx-auto px-4 sm:px-6 py-6">
-      {/* Header Banner */}
-      <div className="bg-gradient-to-r from-[#171329] via-[#1c1731] to-[#131022] border border-[#2c2537] rounded-3xl p-6 sm:p-8 relative overflow-hidden">
-        <div className="absolute right-0 top-0 w-96 h-96 bg-[#d480ff]/5 rounded-full blur-3xl pointer-events-none" />
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 relative z-10">
-          <div>
-            <div className="flex items-center gap-2 mb-2">
-              <span className="px-3 py-1 bg-[#d480ff]/10 text-[#d480ff] border border-[#d480ff]/20 text-xs font-mono font-semibold rounded-full flex items-center gap-1.5">
-                <Zap className="w-3.5 h-3.5" /> Phase 10: Autonomous Workflows
-              </span>
-            </div>
-            <h1 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">
-              Smart Focus Automations
-            </h1>
-            <p className="text-zinc-400 text-sm mt-1 max-w-2xl">
-              Set trigger rules that automatically protect your time. Zero friction, intelligent interventions when you need them most.
-            </p>
-          </div>
+    <div className="space-y-6 pb-6">
+      <div>
+        <h1 className="font-display text-2xl sm:text-3xl font-extrabold text-[#142647]">
+          Smart Focus Automations
+        </h1>
+        <p className="text-sm text-[#4A607A] mt-1">
+          Set automatic gentle nudges, study break reminders, or short-form shields when thresholds are met.
+        </p>
+      </div>
 
+      <form onSubmit={handleCreate} className="ff-card p-6 grid grid-cols-1 md:grid-cols-12 gap-3 items-end">
+        <div className="md:col-span-4">
+          <label htmlFor="auto-name" className="block text-xs font-bold text-[#334B68] mb-1">
+            Rule Name
+          </label>
+          <input
+            id="auto-name"
+            type="text"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            placeholder="e.g., Evening Reels Wind-Down"
+            className="w-full px-3.5 py-2.5 rounded-xl bg-[#F7FCFA] border border-[#E1EEE9] text-xs text-[#142647]"
+            required
+          />
+        </div>
+        <div className="md:col-span-3">
+          <label htmlFor="auto-trigger" className="block text-xs font-bold text-[#334B68] mb-1">
+            When Triggered
+          </label>
+          <select
+            id="auto-trigger"
+            value={trigger}
+            onChange={(e) => setTrigger(e.target.value as AutomationTriggerType)}
+            className="w-full px-3 py-2.5 rounded-xl bg-[#F7FCFA] border border-[#E1EEE9] text-xs font-semibold text-[#142647]"
+          >
+            <option value="REEL_COUNT_EXCEEDED">Estimated Reels Exceeded</option>
+            <option value="FOCUS_SESSION_COMPLETED">Focus Session Completed</option>
+            <option value="BEDTIME_APPROACHING">Bedtime Approaching</option>
+            <option value="DAILY_GOAL_MET">Daily Goal Met</option>
+          </select>
+        </div>
+        <div className="md:col-span-3">
+          <label htmlFor="auto-action" className="block text-xs font-bold text-[#334B68] mb-1">
+            Then Perform
+          </label>
+          <select
+            id="auto-action"
+            value={action}
+            onChange={(e) => setAction(e.target.value as AutomationActionType)}
+            className="w-full px-3 py-2.5 rounded-xl bg-[#F7FCFA] border border-[#E1EEE9] text-xs font-semibold text-[#142647]"
+          >
+            <option value="SEND_DISMISSABLE_NUDGE">Show Gentle Study Nudge</option>
+            <option value="ACTIVATE_STRICT_BLOCKER">Activate Focus Shield</option>
+            <option value="SCHEDULE_CALENDAR_BREAK">Schedule 5m Break</option>
+            <option value="AWARD_BONUS_XP">Award Bonus XP</option>
+          </select>
+        </div>
+        <div className="md:col-span-2">
           <button
-            onClick={() => setShowCreateModal(true)}
-            className="px-4 py-2.5 bg-[#b8ff3c] hover:bg-[#a8eb34] text-[#07060a] font-bold text-xs uppercase tracking-wider rounded-xl transition-all shadow-[0_0_20px_rgba(184,255,60,0.2)] flex items-center gap-2"
+            type="submit"
+            className="w-full py-2.5 px-4 rounded-xl bg-[#079669] hover:bg-[#057A55] text-white text-xs font-bold inline-flex items-center justify-center gap-1.5 cursor-pointer"
           >
             <Plus className="w-4 h-4" />
-            <span>Create Automation Rule</span>
+            <span>Add Rule</span>
           </button>
         </div>
-      </div>
+      </form>
 
-      {/* Automations Rules List */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-        {rules.map(rule => (
-          <div
-            key={rule.id}
-            className={`rounded-3xl border p-6 flex flex-col justify-between transition-all ${
-              rule.isEnabled
-                ? 'bg-[#12101a] border-[#2c2537] hover:border-[#3d344d]'
-                : 'bg-[#0f0e16]/60 border-[#201c29] opacity-75'
-            }`}
-          >
-            <div>
-              <div className="flex items-center justify-between mb-3">
-                <span className="text-[10px] font-mono px-2.5 py-1 rounded-full bg-[#1e192c] text-[#b8ff3c] border border-[#342b4a]">
-                  TRIGGER: {rule.trigger.replace('_', ' ')}
-                </span>
-                <button
-                  onClick={() => handleToggle(rule.id)}
-                  className={`text-sm font-bold flex items-center gap-1.5 transition-colors ${
-                    rule.isEnabled ? 'text-[#b8ff3c]' : 'text-zinc-600'
-                  }`}
-                >
-                  {rule.isEnabled ? (
-                    <>
-                      <ToggleRight className="w-7 h-7" />
-                      <span className="text-[11px] font-mono">ACTIVE</span>
-                    </>
-                  ) : (
-                    <>
-                      <ToggleLeft className="w-7 h-7" />
-                      <span className="text-[11px] font-mono">PAUSED</span>
-                    </>
-                  )}
-                </button>
-              </div>
-
-              <h3 className="font-bold text-white text-base">{rule.name}</h3>
-              <p className="text-xs text-zinc-400 mt-1 leading-relaxed">{rule.description}</p>
-
-              <div className="mt-4 p-3 bg-[#0c0a10] rounded-2xl border border-[#231e30] space-y-1.5 text-xs">
-                <div className="flex items-center justify-between text-zinc-400">
-                  <span>Threshold</span>
-                  <span className="font-mono text-zinc-200">{rule.triggerThreshold} units</span>
-                </div>
-                <div className="flex items-center justify-between text-zinc-400">
-                  <span>Action</span>
-                  <span className="font-mono text-emerald-400 font-bold">{rule.action}</span>
-                </div>
-              </div>
-            </div>
-
-            <div className="pt-4 mt-4 border-t border-[#231e30] flex items-center justify-between text-xs text-zinc-500">
-              <span className="font-mono">Fired {rule.executionCount} times</span>
-              <button
-                onClick={() => handleDelete(rule.id)}
-                className="text-zinc-600 hover:text-rose-400 transition-colors p-1"
-                title="Delete rule"
-              >
-                <Trash2 className="w-4 h-4" />
-              </button>
-            </div>
-          </div>
-        ))}
-      </div>
-
-      {/* Create Rule Modal */}
-      {showCreateModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
-          <div className="bg-[#141220] border border-[#2c2537] rounded-3xl max-w-lg w-full p-6 sm:p-8 space-y-5 relative">
-            <h3 className="text-xl font-bold text-white">Create Smart Automation</h3>
-
-            <form onSubmit={handleCreateRule} className="space-y-4">
-              <div>
-                <label className="text-xs font-mono text-zinc-400 block mb-1">RULE NAME</label>
-                <input
-                  type="text"
-                  value={name}
-                  onChange={e => setName(e.target.value)}
-                  placeholder="e.g. Exam Mode Strict Shield"
-                  className="w-full bg-[#0c0a10] border border-[#2c2537] rounded-xl px-3.5 py-2.5 text-sm text-white focus:outline-none focus:border-[#b8ff3c]"
-                  required
-                />
-              </div>
-
-              <div>
-                <label className="text-xs font-mono text-zinc-400 block mb-1">DESCRIPTION</label>
-                <input
-                  type="text"
-                  value={description}
-                  onChange={e => setDescription(e.target.value)}
-                  placeholder="Explain when and what this automation does"
-                  className="w-full bg-[#0c0a10] border border-[#2c2537] rounded-xl px-3.5 py-2.5 text-sm text-white focus:outline-none focus:border-[#b8ff3c]"
-                  required
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="text-xs font-mono text-zinc-400 block mb-1">TRIGGER EVENT</label>
-                  <select
-                    value={trigger}
-                    onChange={e => setTrigger(e.target.value as any)}
-                    className="w-full bg-[#0c0a10] border border-[#2c2537] rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-[#b8ff3c]"
-                  >
-                    <option value="REEL_COUNT_EXCEEDED">Reel Scroll Exceeded</option>
-                    <option value="DAILY_GOAL_MET">Daily Goal Met</option>
-                    <option value="STREAK_AT_RISK">Streak At Risk</option>
-                    <option value="BEDTIME_APPROACHING">Bedtime Approaching</option>
-                    <option value="FOCUS_SESSION_COMPLETED">Focus Session Completed</option>
-                  </select>
+      {loading ? (
+        <EmptyState
+          variant="loading"
+          title="Loading Automations"
+          description="Syncing your active habit guardrails..."
+        />
+      ) : error ? (
+        <EmptyState
+          variant="error"
+          title="Automations unavailable"
+          description={error}
+          actionLabel="Retry"
+          onAction={loadRules}
+        />
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {rules.map((rule) => (
+            <div key={rule.id} className="ff-card p-5 flex flex-col justify-between gap-4">
+              <div className="flex items-start justify-between gap-3">
+                <div className="flex items-start gap-3">
+                  <div className="w-9 h-9 rounded-xl bg-[#E9F9F2] text-[#079669] flex items-center justify-center shrink-0">
+                    <Zap className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <h2 className="font-display text-base font-bold text-[#142647]">{rule.name}</h2>
+                    <p className="text-xs text-[#5A708D] mt-0.5">{rule.description}</p>
+                  </div>
                 </div>
 
-                <div>
-                  <label className="text-xs font-mono text-zinc-400 block mb-1">THRESHOLD VALUE</label>
-                  <input
-                    type="number"
-                    value={triggerThreshold}
-                    onChange={e => setTriggerThreshold(Number(e.target.value))}
-                    className="w-full bg-[#0c0a10] border border-[#2c2537] rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-[#b8ff3c]"
-                    min={1}
-                    required
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="text-xs font-mono text-zinc-400 block mb-1">AUTONOMOUS ACTION</label>
-                <select
-                  value={action}
-                  onChange={e => setAction(e.target.value as any)}
-                  className="w-full bg-[#0c0a10] border border-[#2c2537] rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-[#b8ff3c]"
-                >
-                  <option value="SEND_DISMISSABLE_NUDGE">Send Dismissable Gentle Nudge</option>
-                  <option value="ACTIVATE_STRICT_BLOCKER">Activate Strict Blocker Lockdown</option>
-                  <option value="AWARD_BONUS_XP">Award Bonus XP & Streak Shield</option>
-                  <option value="SCHEDULE_CALENDAR_BREAK">Schedule 10m Calendar Break</option>
-                  <option value="NOTIFY_COACH">Notify AI Focus Coach</option>
-                </select>
-              </div>
-
-              <div className="flex gap-3 pt-3">
                 <button
                   type="button"
-                  onClick={() => setShowCreateModal(false)}
-                  className="flex-1 py-2.5 bg-[#1b172a] text-zinc-400 hover:text-white rounded-xl text-xs font-bold"
+                  role="switch"
+                  aria-checked={rule.isEnabled}
+                  aria-label={`Toggle ${rule.name}`}
+                  onClick={() => handleToggle(rule.id)}
+                  className={`relative inline-flex h-6 w-11 shrink-0 rounded-full border-2 border-transparent cursor-pointer ${
+                    rule.isEnabled ? 'bg-[#079669]' : 'bg-[#CBDAD4]'
+                  }`}
                 >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={isSubmitting}
-                  className="flex-1 py-2.5 bg-[#b8ff3c] hover:bg-[#a8eb34] text-[#07060a] font-bold text-xs uppercase tracking-wider rounded-xl transition-colors disabled:opacity-50"
-                >
-                  {isSubmitting ? 'Saving...' : 'Deploy Rule'}
+                  <span
+                    className={`inline-block h-5 w-5 transform rounded-full bg-white shadow-xs transition-transform ${
+                      rule.isEnabled ? 'translate-x-5' : 'translate-x-0'
+                    }`}
+                  />
                 </button>
               </div>
-            </form>
-          </div>
+
+              <div className="flex items-center justify-between pt-3 border-t border-[#E1EEE9] text-xs">
+                <span className="text-[#5A708D] tabular-nums">
+                  Triggered {rule.executionCount} times
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setRuleToDelete(rule)}
+                  aria-label={`Delete ${rule.name}`}
+                  className="text-[#6C819C] hover:text-rose-600 inline-flex items-center gap-1 cursor-pointer"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                  <span>Delete</span>
+                </button>
+              </div>
+            </div>
+          ))}
         </div>
       )}
+
+      <ConfirmDialog
+        isOpen={Boolean(ruleToDelete)}
+        title="Delete Automation Rule?"
+        description={ruleToDelete ? `Remove "${ruleToDelete.name}"?` : ''}
+        confirmLabel="Delete Rule"
+        tone="danger"
+        onConfirm={handleConfirmDelete}
+        onCancel={() => setRuleToDelete(null)}
+      />
     </div>
   );
 };

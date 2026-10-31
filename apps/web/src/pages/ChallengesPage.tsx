@@ -1,272 +1,200 @@
 /**
  * @file apps/web/src/pages/ChallengesPage.tsx
- * @description Daily & Weekly Focus Challenges with Claimable XP Rewards
+ * @description Light-theme Daily & Weekly Focus Challenges page connected to /api/v1/gamification/challenges
  */
-import React, { useState, useEffect } from 'react';
-import {
-  Target,
-  Clock,
-  Sparkles,
-  CheckCircle2,
-  Calendar,
-  Zap,
-  Flame,
-  ArrowRight,
-  Shield,
-} from 'lucide-react';
+import React, { useState, useEffect, useCallback } from 'react';
+import { Trophy, CheckCircle2, Sparkles, Clock } from 'lucide-react';
 import { apiClient } from '../services/apiClient.ts';
-import {
-  ChallengeItem,
-  ChallengeDifficulty,
-} from '../../../../packages/shared-types/src/index.ts';
+import type { ChallengeItem } from '../../../../packages/shared-types/src/index.ts';
+import { ProgressBar } from '../components/ui/ProgressBar.tsx';
+import { EmptyState } from '../components/ui/EmptyState.tsx';
 
-export function ChallengesPage() {
-  const [dailyChallenges, setDailyChallenges] = useState<ChallengeItem[]>([]);
-  const [weeklyChallenges, setWeeklyChallenges] = useState<ChallengeItem[]>([]);
+interface ChallengesPageProps {
+  onChallengeClaimed?: () => void;
+}
+
+export const ChallengesPage: React.FC<ChallengesPageProps> = ({ onChallengeClaimed }) => {
+  const [daily, setDaily] = useState<ChallengeItem[]>([]);
+  const [weekly, setWeekly] = useState<ChallengeItem[]>([]);
+  const [activeTab, setActiveTab] = useState<'ALL' | 'DAILY' | 'WEEKLY'>('ALL');
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [claimingId, setClaimingId] = useState<string | null>(null);
-  const [claimToast, setClaimToast] = useState<string | null>(null);
+  const [toast, setToast] = useState<string | null>(null);
 
-  useEffect(() => {
-    loadChallenges();
-  }, []);
-
-  const loadChallenges = async () => {
+  const loadChallenges = useCallback(async () => {
     try {
       setLoading(true);
+      setError(null);
       const data = await apiClient.getChallenges();
-      setDailyChallenges(data.daily);
-      setWeeklyChallenges(data.weekly);
+      setDaily(data.daily);
+      setWeekly(data.weekly);
     } catch (err) {
-      console.error('Failed to load challenges:', err);
+      setError(err instanceof Error ? err.message : 'Unable to load challenges.');
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
-  const handleClaim = async (challengeId: string) => {
+  useEffect(() => {
+    loadChallenges();
+  }, [loadChallenges]);
+
+  const handleClaim = async (id: string) => {
     try {
-      setClaimingId(challengeId);
-      const res = await apiClient.claimChallenge(challengeId);
-      if (res.success) {
-        setClaimToast(res.message);
-        await loadChallenges();
-        setTimeout(() => setClaimToast(null), 4000);
-      }
-    } catch (err: any) {
-      setClaimToast(err.message || 'Error claiming challenge reward');
-      setTimeout(() => setClaimToast(null), 4000);
+      setClaimingId(id);
+      const res = await apiClient.claimChallenge(id);
+      setToast(res.message || `Claimed +${res.xpEarned} XP!`);
+      await loadChallenges();
+      onChallengeClaimed?.();
+    } catch (err) {
+      setToast(err instanceof Error ? err.message : 'Unable to claim reward.');
     } finally {
       setClaimingId(null);
     }
   };
 
-  const getDifficultyColor = (diff: ChallengeDifficulty) => {
-    switch (diff) {
-      case 'HARD':
-        return 'text-rose-400 bg-rose-400/10 border-rose-400/20';
-      case 'MEDIUM':
-        return 'text-amber-400 bg-amber-400/10 border-amber-400/20';
-      case 'EASY':
-      default:
-        return 'text-emerald-400 bg-emerald-400/10 border-emerald-400/20';
-    }
-  };
+  if (loading) {
+    return (
+      <EmptyState
+        variant="loading"
+        title="Loading Focus Challenges"
+        description="Fetching your daily and weekly study quests..."
+      />
+    );
+  }
+
+  if (error) {
+    return (
+      <EmptyState
+        variant="error"
+        title="Challenges unavailable"
+        description={error}
+        actionLabel="Retry"
+        onAction={loadChallenges}
+      />
+    );
+  }
+
+  const displayed =
+    activeTab === 'DAILY' ? daily : activeTab === 'WEEKLY' ? weekly : [...daily, ...weekly];
 
   return (
-    <div className="space-y-8 max-w-6xl mx-auto">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-[#2c2537] pb-6">
+    <div className="space-y-6 pb-6">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <div className="inline-flex items-center gap-1.5 text-xs font-mono text-[#b8ff3c] bg-[#b8ff3c]/10 px-2.5 py-1 rounded-full border border-[#b8ff3c]/20 mb-2">
-            <Target className="w-3.5 h-3.5" />
-            Phase 6 Quest System
-          </div>
-          <h1 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">
-            Daily & Weekly Focus Challenges
+          <h1 className="font-display text-2xl sm:text-3xl font-extrabold text-[#142647]">
+            Focus Challenges
           </h1>
-          <p className="text-zinc-400 text-sm mt-1">
-            Complete targeted study milestones to earn high-yield XP and accelerate level progression.
+          <p className="text-sm text-[#4A607A] mt-1">
+            Complete structured study quests to earn bonus XP and reinforce healthy screen habits.
           </p>
+        </div>
+
+        <div className="inline-flex gap-1.5 p-1.5 rounded-2xl bg-white border border-[#E1EEE9] self-start">
+          {(['ALL', 'DAILY', 'WEEKLY'] as const).map((tab) => (
+            <button
+              key={tab}
+              type="button"
+              onClick={() => setActiveTab(tab)}
+              className={`px-3.5 py-1.5 rounded-xl text-xs font-bold cursor-pointer ${
+                activeTab === tab
+                  ? 'bg-[#079669] text-white'
+                  : 'text-[#5A708D] hover:text-[#142647]'
+              }`}
+            >
+              {tab === 'ALL' ? 'All Quests' : tab === 'DAILY' ? 'Daily' : 'Weekly'}
+            </button>
+          ))}
         </div>
       </div>
 
-      {claimToast && (
-        <div className="p-4 rounded-xl bg-[#b8ff3c]/10 border border-[#b8ff3c]/30 text-[#b8ff3c] text-xs font-mono flex items-center gap-2">
-          <Sparkles className="w-4 h-4 shrink-0" />
-          <span>{claimToast}</span>
+      {toast && (
+        <div
+          role="status"
+          className="p-3.5 rounded-2xl bg-[#E9F9F2] border border-[#BCEAD7] text-[#067652] text-xs font-semibold flex items-center justify-between gap-2"
+        >
+          <div className="flex items-center gap-2">
+            <Sparkles className="w-4 h-4 text-[#079669]" />
+            <span>{toast}</span>
+          </div>
+          <button type="button" onClick={() => setToast(null)} className="underline font-bold cursor-pointer">
+            Dismiss
+          </button>
         </div>
       )}
 
-      {/* Daily Challenges Section */}
-      <div className="space-y-4">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Clock className="w-5 h-5 text-[#b8ff3c]" />
-            <h2 className="text-lg font-bold text-white">Today's Daily Quests</h2>
-          </div>
-          <span className="text-xs font-mono text-zinc-500">Resets in 8h 15m</span>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {dailyChallenges.map((chal) => {
-            const isCompleted = chal.currentValue >= chal.targetValue;
-            const isClaimed = chal.status === 'CLAIMED';
-            const percent = Math.min(100, Math.round((chal.currentValue / chal.targetValue) * 100));
-
-            return (
-              <div
-                key={chal.id}
-                className="bg-[#17131f] border border-[#2c2537] rounded-2xl p-5 flex flex-col justify-between space-y-4 hover:border-white/20 transition-all shadow-lg"
-              >
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between">
-                    <span
-                      className={`text-[10px] font-mono px-2 py-0.5 rounded-full border ${getDifficultyColor(
-                        chal.difficulty
-                      )}`}
-                    >
-                      {chal.difficulty}
-                    </span>
-                    <span className="text-xs font-mono font-bold text-[#b8ff3c]">
-                      +{chal.xpReward} XP
-                    </span>
-                  </div>
-
-                  <div>
-                    <h3 className="text-sm font-bold text-white">{chal.title}</h3>
-                    <p className="text-xs text-zinc-400 mt-1 leading-relaxed">
-                      {chal.description}
-                    </p>
-                  </div>
-                </div>
-
-                <div className="space-y-3 pt-2 border-t border-white/5">
-                  <div className="flex items-center justify-between text-xs font-mono text-zinc-400">
-                    <span>Progress</span>
-                    <span className="text-white font-bold">
-                      {chal.currentValue} / {chal.targetValue} {chal.unit}
-                    </span>
-                  </div>
-
-                  <div className="h-2 w-full bg-[#0c0a10] rounded-full overflow-hidden">
-                    <div
-                      className={`h-full rounded-full transition-all duration-300 ${
-                        isCompleted ? 'bg-gradient-to-r from-[#b8ff3c] to-emerald-400' : 'bg-[#b8ff3c]'
-                      }`}
-                      style={{ width: `${percent}%` }}
-                    />
-                  </div>
-
-                  {isClaimed ? (
-                    <div className="w-full py-2 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-mono font-bold text-center flex items-center justify-center gap-1.5">
-                      <CheckCircle2 className="w-4 h-4" />
-                      XP Claimed
-                    </div>
-                  ) : isCompleted ? (
-                    <button
-                      onClick={() => handleClaim(chal.id)}
-                      disabled={claimingId === chal.id}
-                      className="w-full py-2.5 rounded-xl bg-[#b8ff3c] hover:bg-[#a6eb2f] text-[#07060a] text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-lg shadow-[#b8ff3c]/20"
-                    >
-                      <Sparkles className="w-3.5 h-3.5" />
-                      <span>{claimingId === chal.id ? 'Claiming...' : `Claim +${chal.xpReward} XP`}</span>
-                    </button>
-                  ) : (
-                    <div className="text-center text-[11px] font-mono text-zinc-500 py-1">
-                      In progress ({percent}%)
-                    </div>
-                  )}
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      </div>
-
-      {/* Weekly Challenges Section */}
-      <div className="space-y-4">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Calendar className="w-5 h-5 text-[#49e6ff]" />
-            <h2 className="text-lg font-bold text-white">Weekly Focus Sprints</h2>
-          </div>
-          <span className="text-xs font-mono text-zinc-500">Resets in 3 days</span>
-        </div>
-
+      {displayed.length === 0 ? (
+        <EmptyState
+          variant="empty"
+          title="No active challenges in this filter"
+          description="Check back tomorrow for fresh daily study challenges."
+        />
+      ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {weeklyChallenges.map((chal) => {
-            const isCompleted = chal.currentValue >= chal.targetValue;
-            const isClaimed = chal.status === 'CLAIMED';
-            const percent = Math.min(100, Math.round((chal.currentValue / chal.targetValue) * 100));
-
+          {displayed.map((ch) => {
+            const pct = Math.min(100, Math.round((ch.currentValue / Math.max(ch.targetValue, 1)) * 100));
             return (
-              <div
-                key={chal.id}
-                className="bg-[#17131f] border border-[#2c2537] rounded-2xl p-6 flex flex-col justify-between space-y-4 shadow-lg hover:border-white/20 transition-all"
-              >
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between">
-                    <span
-                      className={`text-[10px] font-mono px-2 py-0.5 rounded-full border ${getDifficultyColor(
-                        chal.difficulty
-                      )}`}
-                    >
-                      WEEKLY • {chal.difficulty}
+              <div key={ch.id} className="ff-card p-6 flex flex-col justify-between gap-4">
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-md bg-[#E9F9F2] text-[#079669]">
+                      {ch.type} • {ch.difficulty}
                     </span>
-                    <span className="text-xs font-mono font-bold text-[#49e6ff]">
-                      +{chal.xpReward} XP
+                    <span className="text-xs font-bold text-[#079669] tabular-nums">
+                      +{ch.xpReward} XP
                     </span>
                   </div>
-
-                  <div>
-                    <h3 className="text-base font-bold text-white">{chal.title}</h3>
-                    <p className="text-xs text-zinc-400 mt-1 leading-relaxed">
-                      {chal.description}
-                    </p>
-                  </div>
+                  <h2 className="font-display text-lg font-bold text-[#142647]">{ch.title}</h2>
+                  <p className="text-xs text-[#5A708D] leading-relaxed">{ch.description}</p>
                 </div>
 
-                <div className="space-y-3 pt-3 border-t border-white/5">
-                  <div className="flex items-center justify-between text-xs font-mono text-zinc-400">
-                    <span>Progress</span>
-                    <span className="text-white font-bold">
-                      {chal.currentValue} / {chal.targetValue} {chal.unit}
-                    </span>
-                  </div>
-
-                  <div className="h-2.5 w-full bg-[#0c0a10] rounded-full overflow-hidden">
-                    <div
-                      className="h-full bg-gradient-to-r from-[#49e6ff] to-indigo-400 rounded-full transition-all duration-300"
-                      style={{ width: `${percent}%` }}
+                <div className="space-y-3">
+                  <div>
+                    <div className="flex justify-between text-xs font-semibold text-[#334B68] mb-1.5 tabular-nums">
+                      <span>Progress</span>
+                      <span>
+                        {ch.currentValue} / {ch.targetValue} {ch.unit}
+                      </span>
+                    </div>
+                    <ProgressBar
+                      value={pct}
+                      label={ch.title}
+                      tone={ch.status === 'CLAIMED' ? 'blue' : 'emerald'}
                     />
                   </div>
 
-                  {isClaimed ? (
-                    <div className="w-full py-2.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-mono font-bold text-center flex items-center justify-center gap-1.5">
-                      <CheckCircle2 className="w-4 h-4" />
-                      Weekly Sprint XP Claimed
-                    </div>
-                  ) : isCompleted ? (
-                    <button
-                      onClick={() => handleClaim(chal.id)}
-                      disabled={claimingId === chal.id}
-                      className="w-full py-2.5 rounded-xl bg-[#49e6ff] hover:bg-[#3cd0e6] text-[#07060a] text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-lg shadow-[#49e6ff]/20"
-                    >
-                      <Sparkles className="w-3.5 h-3.5" />
-                      <span>{claimingId === chal.id ? 'Claiming...' : `Claim +${chal.xpReward} XP`}</span>
-                    </button>
-                  ) : (
-                    <div className="text-center text-xs font-mono text-zinc-400 py-1">
-                      {chal.targetValue - chal.currentValue} {chal.unit} left to complete
-                    </div>
-                  )}
+                  <div className="flex items-center justify-between pt-1">
+                    <span className="inline-flex items-center gap-1 text-[11px] text-[#6C819C] tabular-nums">
+                      <Clock className="w-3.5 h-3.5" />
+                      Expires {new Date(ch.expiresAt).toLocaleDateString()}
+                    </span>
+
+                    {ch.status === 'COMPLETED' ? (
+                      <button
+                        type="button"
+                        disabled={claimingId === ch.id}
+                        onClick={() => handleClaim(ch.id)}
+                        className="px-4 py-2 rounded-xl bg-[#079669] hover:bg-[#057A55] text-white text-xs font-bold inline-flex items-center gap-1.5 cursor-pointer"
+                      >
+                        <Trophy className="w-3.5 h-3.5" />
+                        <span>{claimingId === ch.id ? 'Claiming...' : `Claim +${ch.xpReward} XP`}</span>
+                      </button>
+                    ) : ch.status === 'CLAIMED' ? (
+                      <span className="inline-flex items-center gap-1 text-xs font-bold text-[#079669]">
+                        <CheckCircle2 className="w-4 h-4" />
+                        Reward Claimed
+                      </span>
+                    ) : (
+                      <span className="text-xs font-semibold text-[#5A708D]">In Progress</span>
+                    )}
+                  </div>
                 </div>
               </div>
             );
           })}
         </div>
-      </div>
+      )}
     </div>
   );
-}
+};

@@ -1,72 +1,97 @@
+/**
+ * @file apps/web/src/pages/LandingPage.tsx
+ * @description Light-theme Platform Overview / Tour page inside FOCUSFLOW
+ */
 import React from 'react';
-import { ArrowRight, ShieldCheck, Sparkles, Brain, Clock } from 'lucide-react';
+import { ArrowRight, ShieldCheck, Timer, PlaySquare, Sparkles } from 'lucide-react';
+import { AICoachMascot, CurvedCountUnderline } from '../components/ui/BrandIllustrations.tsx';
 
-export const LandingPage: React.FC<{ onNavigate?: (page: string) => void }> = ({ onNavigate }) => {
+interface LandingPageProps {
+  onNavigate: (page: string) => void;
+}
+
+export const LandingPage: React.FC<LandingPageProps> = ({ onNavigate }) => {
   return (
-    <div className="space-y-12 py-8 max-w-5xl mx-auto">
-      {/* Hero */}
-      <div className="text-center space-y-4">
-        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-mono text-[#b8ff3c] bg-[#b8ff3c]/10 border border-[#b8ff3c]/20">
-          <Sparkles className="w-3.5 h-3.5" />
-          FOCUSFLOW Phase 1 Foundation
-        </div>
-        <h1 className="text-4xl sm:text-6xl font-extrabold tracking-tight text-white leading-tight">
-          Reclaim Your Focus from the <span className="text-[#f4533f]">Endless Scroll</span>
-        </h1>
-        <p className="text-base sm:text-xl text-zinc-400 max-w-2xl mx-auto leading-relaxed">
-          AI-powered digital wellbeing engineered for students. Curb short-form video dopamine loops,
-          protect deep work sessions, and build sustainable study habits.
-        </p>
-
-        <div className="flex flex-wrap items-center justify-center gap-4 pt-4">
-          <button
-            onClick={() => onNavigate?.('dashboard')}
-            className="px-6 py-3 bg-[#b8ff3c] hover:bg-[#a6eb2f] text-[#07060a] font-extrabold rounded-xl text-sm transition-all shadow-lg shadow-[#b8ff3c]/20 flex items-center gap-2 cursor-pointer"
-          >
-            Launch Dashboard
-            <ArrowRight className="w-4 h-4" />
-          </button>
-          <button
-            onClick={() => onNavigate?.('focus')}
-            className="px-6 py-3 bg-[#17131f] hover:bg-[#241a31] border border-[#2c2537] text-white font-medium rounded-xl text-sm transition-all cursor-pointer"
-          >
-            Start Focus Session
-          </button>
-        </div>
-      </div>
-
-      {/* Feature Pillar Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-        <div className="bg-[#17131f] border border-[#2c2537] rounded-2xl p-6 space-y-3">
-          <div className="w-10 h-10 rounded-xl bg-[#f4533f]/10 border border-[#f4533f]/30 flex items-center justify-center text-[#f4533f]">
-            <Brain className="w-5 h-5" />
+    <div className="space-y-8 pb-8">
+      <section className="ff-card-mint p-6 sm:p-10 grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
+        <div className="lg:col-span-7 space-y-4">
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/85 border border-[#CBEFE0] text-[#079669] text-xs font-bold">
+            <ShieldCheck className="w-3.5 h-3.5" />
+            <span>Built for Students • Privacy-First Digital Wellbeing</span>
           </div>
-          <h3 className="text-lg font-bold text-white">Short-Form Intervention</h3>
-          <p className="text-xs text-zinc-400 leading-relaxed">
-            Privacy-preserving estimation of Instagram Reels, YouTube Shorts, and Facebook Reels. Detects doomscrolling sessions before they ruin study blocks.
+          <h1 className="font-display text-3xl sm:text-5xl font-extrabold text-[#142647] leading-tight">
+            Reclaim your study hours and make every day{' '}
+            <span className="relative inline-block text-[#079669]">
+              count
+              <span className="block -mt-1">
+                <CurvedCountUnderline />
+              </span>
+            </span>
+          </h1>
+          <p className="text-sm sm:text-base text-[#334B68] max-w-xl leading-relaxed">
+            FOCUSFLOW combines structured focus timers, adaptive study planning, and ethical short-form scroll estimation so you stay energized without surveillance.
+          </p>
+          <div className="flex flex-wrap gap-3 pt-2">
+            <button
+              type="button"
+              onClick={() => onNavigate('dashboard')}
+              className="px-6 py-3.5 rounded-full bg-[#079669] hover:bg-[#057A55] text-white text-sm font-bold inline-flex items-center gap-2 cursor-pointer shadow-sm"
+            >
+              <span>Open My Dashboard</span>
+              <ArrowRight className="w-4 h-4" />
+            </button>
+            <button
+              type="button"
+              onClick={() => onNavigate('reels')}
+              className="px-5 py-3.5 rounded-full bg-white hover:bg-[#F7FCFA] border border-[#CBEFE0] text-[#142647] text-sm font-bold cursor-pointer"
+            >
+              Explore Reels &amp; Shorts Analytics
+            </button>
+          </div>
+        </div>
+
+        <div className="lg:col-span-5 flex justify-center">
+          <AICoachMascot variant="hero" className="w-48 sm:w-56" />
+        </div>
+      </section>
+
+      <section className="grid grid-cols-1 md:grid-cols-3 gap-5">
+        <div className="ff-card p-6 space-y-2.5">
+          <div className="w-10 h-10 rounded-xl bg-[#E9F9F2] text-[#079669] flex items-center justify-center">
+            <PlaySquare className="w-5 h-5" />
+          </div>
+          <h2 className="font-display text-lg font-bold text-[#142647]">
+            Ethical Reels &amp; Shorts Estimation
+          </h2>
+          <p className="text-xs text-[#5A708D] leading-relaxed">
+            Estimates scroll transitions across Instagram Reels, YouTube Shorts, and Facebook Reels without recording private URLs, messages, or screenshots.
           </p>
         </div>
 
-        <div className="bg-[#17131f] border border-[#2c2537] rounded-2xl p-6 space-y-3">
-          <div className="w-10 h-10 rounded-xl bg-[#b8ff3c]/10 border border-[#b8ff3c]/30 flex items-center justify-center text-[#b8ff3c]">
-            <Clock className="w-5 h-5" />
+        <div className="ff-card p-6 space-y-2.5">
+          <div className="w-10 h-10 rounded-xl bg-[#EBF3FF] text-[#438CF5] flex items-center justify-center">
+            <Timer className="w-5 h-5" />
           </div>
-          <h3 className="text-lg font-bold text-white">Adaptive Focus Timers</h3>
-          <p className="text-xs text-zinc-400 leading-relaxed">
-            Pomodoro, Deep Work, and Exam-Prep pacing backed by Declarative Net Request website blockers to protect student cognitive flow.
+          <h2 className="font-display text-lg font-bold text-[#142647]">
+            Structured Focus Sessions
+          </h2>
+          <p className="text-xs text-[#5A708D] leading-relaxed">
+            Switch seamlessly between 25m Pomodoro, 50m Deep Study, and 90m Exam Mock blocks while earning XP toward scholar milestones.
           </p>
         </div>
 
-        <div className="bg-[#17131f] border border-[#2c2537] rounded-2xl p-6 space-y-3">
-          <div className="w-10 h-10 rounded-xl bg-[#49e6ff]/10 border border-[#49e6ff]/30 flex items-center justify-center text-[#49e6ff]">
-            <ShieldCheck className="w-5 h-5" />
+        <div className="ff-card p-6 space-y-2.5">
+          <div className="w-10 h-10 rounded-xl bg-violet-50 text-[#7C5CFC] flex items-center justify-center">
+            <Sparkles className="w-5 h-5" />
           </div>
-          <h3 className="text-lg font-bold text-white">Ethical Accountability</h3>
-          <p className="text-xs text-zinc-400 leading-relaxed">
-            Consent-governed sharing with parents and campus counsellors. Raw keystrokes, personal messages, and browser history are strictly never collected.
+          <h2 className="font-display text-lg font-bold text-[#142647]">
+            Adaptive Study Planner
+          </h2>
+          <p className="text-xs text-[#5A708D] leading-relaxed">
+            Align Mathematics, Physics, Chemistry, and revision blocks with your peak cognitive energy hours.
           </p>
         </div>
-      </div>
+      </section>
     </div>
   );
 };

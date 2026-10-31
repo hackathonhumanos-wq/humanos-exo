@@ -1,52 +1,59 @@
 /**
  * @file apps/api/src/services/studyPlannerService.ts
- * @description Advanced adaptive study planning engine generating personalized, energy-aware schedules
+ * @description Adaptive study planning engine generating personalized, energy-aware schedules with persistent daily tasks
  */
 import type {
   SubjectWorkload,
   AdaptiveDailySchedule,
   StudyTimeSlot,
 } from '../../../../packages/shared-types/src/index.ts';
+import type { StudySlotCreateInput } from '../../../../packages/validation/src/index.ts';
 
 class StudyPlannerService {
   private subjects: SubjectWorkload[] = [
     {
       id: 'sub-1',
-      name: 'Advanced Data Structures & Algorithms',
+      name: 'Mathematics — Vector Calculus & Linear Algebra',
       targetHoursPerWeek: 12,
-      completedHoursThisWeek: 7.5,
+      completedHoursThisWeek: 8.5,
       urgencyLevel: 'CRITICAL',
-      examDate: '2025-05-18',
-      color: '#b8ff3c',
+      examDate: '2026-05-18',
+      color: '#079669',
     },
     {
       id: 'sub-2',
-      name: 'Operating Systems & Distributed Systems',
+      name: 'Physics — Electromagnetism & Wave Optics',
       targetHoursPerWeek: 8,
-      completedHoursThisWeek: 4.0,
+      completedHoursThisWeek: 5.0,
       urgencyLevel: 'HIGH',
-      examDate: '2025-05-24',
-      color: '#49e6ff',
+      examDate: '2026-05-24',
+      color: '#438CF5',
     },
     {
       id: 'sub-3',
-      name: 'Linear Algebra & Machine Learning Foundations',
+      name: 'Chemistry — Organic Reaction Mechanisms',
       targetHoursPerWeek: 6,
-      completedHoursThisWeek: 3.5,
+      completedHoursThisWeek: 4.0,
       urgencyLevel: 'MEDIUM',
-      examDate: '2025-06-02',
-      color: '#d480ff',
+      examDate: '2026-06-02',
+      color: '#7C5CFC',
     },
     {
       id: 'sub-4',
-      name: 'Web Engineering & System Design',
-      targetHoursPerWeek: 5,
+      name: 'Computer Science — Data Structures Revision',
+      targetHoursPerWeek: 6,
       completedHoursThisWeek: 5.0,
       urgencyLevel: 'LOW',
-      examDate: '2025-06-15',
-      color: '#ff9d42',
+      examDate: '2026-06-15',
+      color: '#F59E0B',
     },
   ];
+
+  private activeSchedule: AdaptiveDailySchedule | null = null;
+
+  constructor() {
+    this.activeSchedule = this.buildSchedule('AFTERNOON_BALANCED', 6);
+  }
 
   public getSubjects(): SubjectWorkload[] {
     return this.subjects;
@@ -65,138 +72,176 @@ class StudyPlannerService {
       completedHoursThisWeek: subject.completedHoursThisWeek || 0,
       urgencyLevel: subject.urgencyLevel || 'MEDIUM',
       examDate: subject.examDate,
-      color: subject.color || '#49e6ff',
+      color: subject.color || '#079669',
     };
     this.subjects.push(newSubject);
     return newSubject;
+  }
+
+  public getCurrentSchedule(): AdaptiveDailySchedule {
+    if (!this.activeSchedule) {
+      this.activeSchedule = this.buildSchedule('AFTERNOON_BALANCED', 6);
+    }
+    return this.activeSchedule;
   }
 
   public generateAdaptiveSchedule(
     energyArchetype: 'MORNING_LARK' | 'AFTERNOON_BALANCED' | 'NIGHT_OWL' = 'AFTERNOON_BALANCED',
     targetHours: number = 6
   ): AdaptiveDailySchedule {
-    const todayStr = new Date().toISOString().split('T')[0];
+    if (
+      this.activeSchedule &&
+      this.activeSchedule.energyArchetype === energyArchetype &&
+      this.activeSchedule.recommendedFocusHours === targetHours
+    ) {
+      return this.activeSchedule;
+    }
+    this.activeSchedule = this.buildSchedule(energyArchetype, targetHours);
+    return this.activeSchedule;
+  }
 
+  public regenerateSchedule(
+    energyArchetype: 'MORNING_LARK' | 'AFTERNOON_BALANCED' | 'NIGHT_OWL' = 'AFTERNOON_BALANCED',
+    targetHours: number = 6
+  ): AdaptiveDailySchedule {
+    this.activeSchedule = this.buildSchedule(energyArchetype, targetHours);
+    return this.activeSchedule;
+  }
+
+  private buildSchedule(
+    energyArchetype: 'MORNING_LARK' | 'AFTERNOON_BALANCED' | 'NIGHT_OWL',
+    targetHours: number
+  ): AdaptiveDailySchedule {
+    const todayStr = new Date().toISOString().split('T')[0];
     const slots: StudyTimeSlot[] = [];
 
     if (energyArchetype === 'MORNING_LARK') {
       slots.push(
         {
           id: 'slot-1',
-          timeSlot: '07:30 - 09:30',
-          subject: 'Advanced Data Structures & Algorithms',
-          topic: 'Dynamic Programming on Trees & Bitmask DP',
+          timeSlot: '07:30 – 08:15 (45 min)',
+          subject: 'Mathematics',
+          topic: '45 min — Vector Calculus & Eigenvalues',
           recommendedMode: 'DEEP_WORK',
           energyLevelRequired: 'HIGH',
           isCompleted: true,
-          aiRationale: 'Peak morning cognitive bandwidth allocated to highest cognitive load topic.',
+          aiRationale: 'Peak morning cognitive bandwidth allocated to highest-priority exam topic.',
         },
         {
           id: 'slot-2',
-          timeSlot: '10:00 - 11:30',
-          subject: 'Operating Systems',
-          topic: 'Virtual Memory & Page Replacement Algorithms',
+          timeSlot: '09:30 – 10:15 (45 min)',
+          subject: 'Physics',
+          topic: '45 min — Gauss Law & Field Practice',
           recommendedMode: 'POMODORO',
-          energyLevelRequired: 'MEDIUM',
+          energyLevelRequired: 'HIGH',
           isCompleted: false,
-          aiRationale: 'Secondary high-urgency subject scheduled before afternoon dip.',
+          aiRationale: 'High-focus analytical problem set scheduled before midday fatigue.',
         },
         {
           id: 'slot-3',
-          timeSlot: '14:00 - 15:30',
-          subject: 'Linear Algebra & ML',
-          topic: 'Singular Value Decomposition (SVD) practice problems',
+          timeSlot: '14:00 – 14:30 (30 min)',
+          subject: 'Chemistry',
+          topic: '30 min — Reaction Mechanisms Flashcards',
           recommendedMode: 'ACTIVE_RECALL',
           energyLevelRequired: 'MEDIUM',
           isCompleted: false,
-          aiRationale: 'Interactive problem-solving prevents post-lunch sluggishness.',
+          aiRationale: 'Interactive active-recall format prevents post-lunch attention dip.',
         },
         {
           id: 'slot-4',
-          timeSlot: '17:00 - 18:00',
-          subject: 'Web Engineering',
-          topic: 'API Rate Limiting & Token Bucket Algorithms Review',
+          timeSlot: '17:00 – 17:20 (20 min)',
+          subject: 'Revision',
+          topic: '20 min — Formula Sheet & Error Log Recap',
           recommendedMode: 'POMODORO',
           energyLevelRequired: 'LOW',
           isCompleted: false,
-          aiRationale: 'Lower intensity synthesis session before evening wind-down.',
+          aiRationale: 'Low-friction evening consolidation to lock in memory retention.',
         }
       );
     } else if (energyArchetype === 'NIGHT_OWL') {
       slots.push(
         {
           id: 'slot-1',
-          timeSlot: '11:00 - 12:30',
-          subject: 'Operating Systems',
-          topic: 'Process Synchronization & Semaphore Semantics',
+          timeSlot: '11:00 – 11:45 (45 min)',
+          subject: 'Physics',
+          topic: '45 min — Wave Interference Problems',
           recommendedMode: 'POMODORO',
           energyLevelRequired: 'MEDIUM',
           isCompleted: true,
-          aiRationale: 'Gentle warmup session ramping up focus momentum.',
+          aiRationale: 'Gentle late-morning warm-up session to build study momentum.',
         },
         {
           id: 'slot-2',
-          timeSlot: '15:00 - 17:00',
-          subject: 'Linear Algebra & ML',
-          topic: 'Eigenvectors, Eigenvalues & Principal Component Analysis',
-          recommendedMode: 'DEEP_WORK',
-          energyLevelRequired: 'MEDIUM',
-          isCompleted: false,
-          aiRationale: 'Afternoon structured deep work block with zero notifications.',
-        },
-        {
-          id: 'slot-3',
-          timeSlot: '20:00 - 22:30',
-          subject: 'Advanced Data Structures & Algorithms',
-          topic: 'Graph Shortest Paths & Dijkstra vs A* Benchmark',
-          recommendedMode: 'DEEP_WORK',
-          energyLevelRequired: 'HIGH',
-          isCompleted: false,
-          aiRationale: 'Prime night cognitive peak harnessed for critical exam topics.',
-        }
-      );
-    } else {
-      // AFTERNOON_BALANCED
-      slots.push(
-        {
-          id: 'slot-1',
-          timeSlot: '09:00 - 10:30',
-          subject: 'Advanced Data Structures & Algorithms',
-          topic: 'Graph Algorithms & Topological Sorting',
-          recommendedMode: 'DEEP_WORK',
-          energyLevelRequired: 'HIGH',
-          isCompleted: true,
-          aiRationale: 'Morning momentum builder tackling critical difficulty topics.',
-        },
-        {
-          id: 'slot-2',
-          timeSlot: '11:15 - 12:45',
-          subject: 'Operating Systems',
-          topic: 'Deadlock Detection & Banker Algorithm',
-          recommendedMode: 'POMODORO',
-          energyLevelRequired: 'MEDIUM',
-          isCompleted: false,
-          aiRationale: 'Divided into 3 focused Pomodoro sprints with 5m eye-rest breaks.',
-        },
-        {
-          id: 'slot-3',
-          timeSlot: '14:30 - 16:30',
-          subject: 'Linear Algebra & ML',
-          topic: 'Matrix Factorization & Gradient Descent Derivation',
+          timeSlot: '15:30 – 16:00 (30 min)',
+          subject: 'Chemistry',
+          topic: '30 min — Stereochemistry Synthesis',
           recommendedMode: 'ACTIVE_RECALL',
+          energyLevelRequired: 'MEDIUM',
+          isCompleted: false,
+          aiRationale: 'Structured afternoon sprint with distraction shield active.',
+        },
+        {
+          id: 'slot-3',
+          timeSlot: '20:00 – 20:45 (45 min)',
+          subject: 'Mathematics',
+          topic: '45 min — Differential Equations Deep Dive',
+          recommendedMode: 'DEEP_WORK',
           energyLevelRequired: 'HIGH',
           isCompleted: false,
-          aiRationale: 'Peak afternoon focus block matched with high-urgency analytical work.',
+          aiRationale: 'Evening alertness peak paired with your highest-weight subject.',
         },
         {
           id: 'slot-4',
-          timeSlot: '17:30 - 18:30',
-          subject: 'Web Engineering',
-          topic: 'Caching Layer & Redis Replication Models',
+          timeSlot: '21:15 – 21:35 (20 min)',
+          subject: 'Revision',
+          topic: '20 min — Quick Summary Notes before Wind-Down',
           recommendedMode: 'POMODORO',
           energyLevelRequired: 'LOW',
           isCompleted: false,
-          aiRationale: 'Low cognitive resistance recap ensuring sustainable energy for evening.',
+          aiRationale: 'Wraps up screen exposure well before sleep window.',
+        }
+      );
+    } else {
+      slots.push(
+        {
+          id: 'slot-1',
+          timeSlot: '09:00 – 09:45 (45 min)',
+          subject: 'Mathematics',
+          topic: '45 min — Multivariable Integration',
+          recommendedMode: 'DEEP_WORK',
+          energyLevelRequired: 'HIGH',
+          isCompleted: true,
+          aiRationale: 'Morning momentum builder tackling critical analytical problem sets.',
+        },
+        {
+          id: 'slot-2',
+          timeSlot: '11:15 – 12:00 (45 min)',
+          subject: 'Physics',
+          topic: '45 min — Electromagnetism Numericals',
+          recommendedMode: 'POMODORO',
+          energyLevelRequired: 'MEDIUM',
+          isCompleted: false,
+          aiRationale: 'Focused sprint with a 5-minute eye-rest break afterward.',
+        },
+        {
+          id: 'slot-3',
+          timeSlot: '15:00 – 15:30 (30 min)',
+          subject: 'Chemistry',
+          topic: '30 min — Organic Mechanisms Active Recall',
+          recommendedMode: 'ACTIVE_RECALL',
+          energyLevelRequired: 'MEDIUM',
+          isCompleted: false,
+          aiRationale: 'Active recall practice sustains afternoon engagement.',
+        },
+        {
+          id: 'slot-4',
+          timeSlot: '17:30 – 17:50 (20 min)',
+          subject: 'Revision',
+          topic: '20 min — Key Mistake Journal Review',
+          recommendedMode: 'POMODORO',
+          energyLevelRequired: 'LOW',
+          isCompleted: false,
+          aiRationale: 'Light recap closing out your study plan without evening burnout.',
         }
       );
     }
@@ -206,23 +251,33 @@ class StudyPlannerService {
       energyArchetype,
       recommendedFocusHours: targetHours,
       scheduledSlots: slots,
-      readinessScore: 88,
-      aiAdvice: `Based on your recent study velocity and 88% readiness score, we scheduled ${slots.length} curated sessions. High-urgency DSA has been placed in your peak cognitive window. Remember to hydrate between blocks!`,
+      readinessScore: 89,
+      aiAdvice: `Your circadian focus readiness is 89%. High-priority Mathematics and Physics blocks are scheduled in your sharpest windows, followed by lighter active recall and 20-minute revision.`,
     };
   }
 
-  public toggleSlotComplete(slotId: string): StudyTimeSlot | null {
-    // Helper to toggle a slot
-    return {
-      id: slotId,
-      timeSlot: '09:00 - 10:30',
-      subject: 'Updated Subject',
-      topic: 'Topic Completed',
-      recommendedMode: 'DEEP_WORK',
-      energyLevelRequired: 'HIGH',
-      isCompleted: true,
-      aiRationale: 'Marked completed by student.',
+  public toggleSlotComplete(slotId: string): AdaptiveDailySchedule {
+    const schedule = this.getCurrentSchedule();
+    schedule.scheduledSlots = schedule.scheduledSlots.map(slot =>
+      slot.id === slotId ? { ...slot, isCompleted: !slot.isCompleted } : slot
+    );
+    return schedule;
+  }
+
+  public addCustomSlot(input: StudySlotCreateInput): AdaptiveDailySchedule {
+    const schedule = this.getCurrentSchedule();
+    const newSlot: StudyTimeSlot = {
+      id: `slot-${Date.now()}`,
+      timeSlot: input.timeSlot || `Flexible (${input.durationMinutes} min)`,
+      subject: input.subject,
+      topic: `${input.durationMinutes} min — ${input.topic}`,
+      recommendedMode: input.recommendedMode,
+      energyLevelRequired: input.durationMinutes >= 45 ? 'HIGH' : 'MEDIUM',
+      isCompleted: false,
+      aiRationale: 'Added directly by student to today’s study agenda.',
     };
+    schedule.scheduledSlots.push(newSlot);
+    return schedule;
   }
 }
 

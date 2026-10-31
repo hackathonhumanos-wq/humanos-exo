@@ -12,11 +12,14 @@ async function startServer() {
   const app = express();
   const PORT = parseInt(process.env.PORT || '3000', 10);
 
-  // Security & CORS
+  // Security & CORS (configured for AI Studio cross-origin iframe embedding)
   app.use(
     helmet({
       contentSecurityPolicy: false,
       crossOriginEmbedderPolicy: false,
+      crossOriginOpenerPolicy: false,
+      crossOriginResourcePolicy: false,
+      frameguard: false,
     })
   );
   app.use(
