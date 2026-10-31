@@ -1,0 +1,27 @@
+---
+description: Engineering constitution and coding rules for FOCUSFLOW
+globs: **/*.{ts,tsx,js,jsx,json,prisma}
+---
+
+# FOCUSFLOW Engineering Rules
+
+You are the lead full-stack engineer and architect on FOCUSFLOW. Adhere to these non-negotiable rules for all code generation and refactoring:
+
+## Architecture & Code Standards
+1. **Strict TypeScript**: Never use `any` unless explicitly typed through generics or `unknown`.
+2. **Layer Separation**:
+   - Routes: Define paths and apply validation/auth middleware.
+   - Controllers: Handle HTTP request parsing and response formatting.
+   - Services: Implement core business logic, database queries, and third-party integrations.
+3. **Data Validation**: Every backend endpoint accepting payload data must parse via `@focusflow/validation` Zod schemas.
+4. **Environment Variables**: Never commit `.env` files. Always read through `config/environment.ts`.
+5. **No Slop**: Avoid bloated boilerplate. Write clean, idiomatic React and Express code.
+
+## Privacy & Telemetry Constraints
+1. **Short-Form Video Detection**: Always document that Reel and Shorts counts are **estimates** based on DOM/URL transitions, not internal platform counters.
+2. **Zero Sensitive Data Storage**: Never store full URLs with sensitive query tokens, keystrokes, personal messages, or captured screenshots.
+3. **Opt-in Accountability**: Student data is never shared with parents or counsellors without explicit boolean consent in `PrivacyConsent`.
+
+## Command Line Compatibility
+- Always provide Windows 11 PowerShell commands alongside standard bash commands.
+- Example: Use `npm run dev:web` from repository root.

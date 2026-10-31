@@ -1,0 +1,43 @@
+{
+  "manifest_version": 3,
+  "name": "FOCUSFLOW — Digital Wellbeing & AI Focus Coach",
+  "version": "1.0.0",
+  "description": "Helps students curb short-form video distraction, block time sinks, and preserve deep focus with ethical estimates.",
+  "permissions": [
+    "tabs",
+    "storage",
+    "alarms",
+    "idle",
+    "declarativeNetRequest"
+  ],
+  "host_permissions": [
+    "*://*.instagram.com/*",
+    "*://*.youtube.com/*",
+    "*://*.facebook.com/*"
+  ],
+  "background": {
+    "service_worker": "src/background/service-worker.ts",
+    "type": "module"
+  },
+  "action": {
+    "default_title": "FOCUSFLOW Focus Companion",
+    "default_popup": "src/popup/index.html"
+  },
+  "content_scripts": [
+    {
+      "matches": ["*://*.instagram.com/*"],
+      "js": ["src/content/instagram.ts"],
+      "run_at": "document_idle"
+    },
+    {
+      "matches": ["*://*.youtube.com/*"],
+      "js": ["src/content/youtube.ts"],
+      "run_at": "document_idle"
+    },
+    {
+      "matches": ["*://*.facebook.com/*"],
+      "js": ["src/content/facebook.ts"],
+      "run_at": "document_idle"
+    }
+  ]
+}

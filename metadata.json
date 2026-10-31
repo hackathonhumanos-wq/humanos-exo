@@ -1,0 +1,8 @@
+{
+  "name": "Remix Remix Remix FOCUSFLOW - Digital Wellbeing \u0026 AI Focus Coach",
+  "description": "AI-powered productivity platform that helps students reduce short-form video distraction, improve focus, and build healthier study routines.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}

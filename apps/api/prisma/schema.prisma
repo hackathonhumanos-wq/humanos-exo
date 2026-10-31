@@ -1,0 +1,452 @@
+// FOCUSFLOW Prisma PostgreSQL Schema
+// Phase 1 - 6: Digital Wellbeing, AI Focus Coach, Gamification, Challenges & Social Groups
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  STUDENT
+  PARENT
+  COUNSELLOR
+  ADMIN
+}
+
+enum DeviceType {
+  CHROME_EXTENSION
+  WEB_BROWSER
+  MOBILE_ANDROID
+  DESKTOP
+}
+
+enum FocusMode {
+  POMODORO
+  DEEP_WORK
+  EXAM_PREP
+}
+
+enum BlockCategory {
+  SOCIAL_MEDIA
+  GAMING
+  STREAMING
+  CUSTOM
+}
+
+enum GroupRole {
+  OWNER
+  ADMIN
+  MEMBER
+}
+
+enum FriendshipStatus {
+  PENDING
+  ACCEPTED
+  BLOCKED
+}
+
+enum ChallengeDifficulty {
+  EASY
+  MEDIUM
+  HARD
+}
+
+enum ChallengeType {
+  DAILY
+  WEEKLY
+}
+
+enum BadgeRarity {
+  COMMON
+  RARE
+  EPIC
+  LEGENDARY
+}
+
+// --------------------------------------------------------
+// 1. User & Authentication Core
+// --------------------------------------------------------
+model User {
+  id             String    @id @default(uuid())
+  email          String    @unique
+  passwordHash   String
+  role           Role      @default(STUDENT)
+  isActive       Boolean   @default(true)
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  profile        Profile?
+  privacyConsent PrivacyConsent?
+  devices        Device[]
+  usageSessions  UsageSession[]
+  dailySummaries DailySummary[]
+  reelDailyStats ReelDailyStat[]
+  focusSessions  FocusSession[]
+  focusGoals     FocusGoal[]
+  blockedSites   BlockedWebsite[]
+  aiRecommendations AIRecommendation[]
+  xpTransactions XPTransaction[]
+  streaks        Streak[]
+  userAchievements UserAchievement[]
+  userChallenges UserChallenge[]
+  friendsInitiated Friendship[] @relation("FriendshipInitiator")
+  friendsReceived  Friendship[] @relation("FriendshipReceiver")
+  groupMemberships GroupMember[]
+  notifications  Notification[]
+
+  @@index([email])
+}
+
+// --------------------------------------------------------
+// 2. Profile & Student Gamification Details
+// --------------------------------------------------------
+model Profile {
+  id             String   @id @default(uuid())
+  userId         String   @unique
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  displayName    String
+  username       String   @unique @default(uuid())
+  institution    String?
+  gradeOrYear    String?
+  avatarUrl      String?
+  bio            String?
+  currentXp      Int      @default(0)
+  level          Int      @default(1)
+  isPublicLeaderboard Boolean @default(true)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+}
+
+// --------------------------------------------------------
+// 3. User Devices
+// --------------------------------------------------------
+model Device {
+  id             String        @id @default(uuid())
+  userId         String
+  user           User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  deviceType     DeviceType    @default(CHROME_EXTENSION)
+  name           String
+  clientToken    String?       @unique
+  lastSyncAt     DateTime?
+  createdAt      DateTime      @default(now())
+
+  usageSessions  UsageSession[]
+
+  @@index([userId, deviceType])
+}
+
+// --------------------------------------------------------
+// 4. Privacy Consent & Ethical Data Controls
+// --------------------------------------------------------
+model PrivacyConsent {
+  id                           String   @id @default(uuid())
+  userId                       String   @unique
+  user                         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  consentShareWithParent       Boolean  @default(false)
+  consentShareWithCounsellor   Boolean  @default(false)
+  consentExtensionTelemetry    Boolean  @default(true)
+  consentAiProductivityAnalysis Boolean @default(true)
+  updatedAt                    DateTime @updatedAt
+}
+
+// --------------------------------------------------------
+// 5. Usage Session (Aggregated active browser usage)
+// --------------------------------------------------------
+model UsageSession {
+  id             String    @id @default(uuid())
+  userId         String
+  user           User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  deviceId       String?
+  device         Device?   @relation(fields: [deviceId], references: [id], onDelete: SetNull)
+  domain         String
+  durationSeconds Int
+  isDistracting  Boolean   @default(false)
+  startedAt      DateTime
+  endedAt        DateTime
+
+  @@index([userId, startedAt])
+  @@index([userId, domain])
+}
+
+// --------------------------------------------------------
+// 6. Reel & Shorts Estimate Tracking (Per Day)
+// --------------------------------------------------------
+model ReelDailyStat {
+  id                 String   @id @default(uuid())
+  userId             String
+  user               User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  date               DateTime @db.Date
+  platform           String
+  estimatedReelCount Int      @default(0)
+  activeSeconds      Int      @default(0)
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  @@unique([userId, date, platform])
+  @@index([userId, date])
+}
+
+// --------------------------------------------------------
+// 7. Daily Aggregate Summary
+// --------------------------------------------------------
+model DailySummary {
+  id                     String   @id @default(uuid())
+  userId                 String
+  user                   User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  date                   DateTime @db.Date
+  totalScreenTimeMinutes Int      @default(0)
+  distractingMinutes     Int      @default(0)
+  productiveMinutes      Int      @default(0)
+  reelsEstimatedTotal    Int      @default(0)
+  focusSessionsCompleted Int      @default(0)
+  xpEarned               Int      @default(0)
+  createdAt              DateTime @default(now())
+  updatedAt              DateTime @updatedAt
+
+  @@unique([userId, date])
+  @@index([userId, date])
+}
+
+// --------------------------------------------------------
+// 8. Focus Session (Pomodoro, Deep Work, Exam Prep)
+// --------------------------------------------------------
+model FocusSession {
+  id                     String     @id @default(uuid())
+  userId                 String
+  user                   User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  mode                   FocusMode  @default(POMODORO)
+  plannedDurationMinutes Int
+  actualDurationMinutes  Int?
+  completed              Boolean    @default(false)
+  interruptedCount       Int        @default(0)
+  notes                  String?
+  startTime              DateTime   @default(now())
+  endTime                DateTime?
+
+  @@index([userId, startTime])
+}
+
+// --------------------------------------------------------
+// 9. Focus Goals & Habit Targets
+// --------------------------------------------------------
+model FocusGoal {
+  id                     String   @id @default(uuid())
+  userId                 String
+  user                   User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title                  String
+  targetMinutesPerDay    Int
+  maxReelsAllowedPerDay  Int?
+  startDate              DateTime @default(now())
+  endDate                DateTime?
+  isActive               Boolean  @default(true)
+
+  @@index([userId, isActive])
+}
+
+// --------------------------------------------------------
+// 10. Website Block Rules (Declarative Net Request targets)
+// --------------------------------------------------------
+model BlockedWebsite {
+  id             String        @id @default(uuid())
+  userId         String
+  user           User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  domain         String
+  category       BlockCategory @default(CUSTOM)
+  isEnabled      Boolean       @default(true)
+  scheduleStart  String?
+  scheduleEnd    String?
+  createdAt      DateTime      @default(now())
+
+  @@unique([userId, domain])
+  @@index([userId, isEnabled])
+}
+
+// --------------------------------------------------------
+// 11. AI Recommendations
+// --------------------------------------------------------
+model AIRecommendation {
+  id              String   @id @default(uuid())
+  userId          String
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  category        String
+  title           String
+  content         String
+  actionableStep  String
+  confidenceScore Float    @default(0.85)
+  isApplied       Boolean  @default(false)
+  createdAt       DateTime @default(now())
+
+  @@index([userId, createdAt])
+}
+
+// --------------------------------------------------------
+// 12. Gamification: XP Transactions & Anti-Duplicate Log
+// --------------------------------------------------------
+model XPTransaction {
+  id             String   @id @default(uuid())
+  userId         String
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  amount         Int
+  activityType   String   // 'FOCUS_SESSION_25M', 'DAILY_GOAL_MET', etc.
+  description    String
+  referenceId    String?  // Idempotency reference (focusSessionId, challengeId, etc.)
+  createdAt      DateTime @default(now())
+
+  @@unique([userId, referenceId])
+  @@index([userId, createdAt])
+}
+
+// --------------------------------------------------------
+// 13. Gamification: Achievements & Badges
+// --------------------------------------------------------
+model Achievement {
+  id             String        @id @default(uuid())
+  code           String        @unique // "FIRST_FOCUS", "7_DAY_STREAK"
+  title          String
+  description    String
+  category       String        // "FOCUS", "CONSISTENCY", "WELLBEING", "SOCIAL"
+  rarity         BadgeRarity   @default(COMMON)
+  xpReward       Int           @default(50)
+  iconUrl        String?
+
+  userUnlocks    UserAchievement[]
+}
+
+model UserAchievement {
+  id             String       @id @default(uuid())
+  userId         String
+  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  achievementId  String
+  achievement    Achievement  @relation(fields: [achievementId], references: [id], onDelete: Cascade)
+  unlockedAt     DateTime     @default(now())
+
+  @@unique([userId, achievementId])
+  @@index([userId])
+}
+
+// --------------------------------------------------------
+// 14. Daily Streaks & Streak Calendar Log
+// --------------------------------------------------------
+model Streak {
+  id             String   @id @default(uuid())
+  userId         String
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  currentStreak  Int      @default(1)
+  longestStreak  Int      @default(1)
+  lastActiveDate DateTime @db.Date
+  updatedAt      DateTime @updatedAt
+
+  dailyRecords   DailyStreakRecord[]
+
+  @@unique([userId])
+}
+
+model DailyStreakRecord {
+  id             String   @id @default(uuid())
+  streakId       String
+  streak         Streak   @relation(fields: [streakId], references: [id], onDelete: Cascade)
+  date           DateTime @db.Date
+  focusMinutes   Int      @default(0)
+  completed      Boolean  @default(false)
+
+  @@unique([streakId, date])
+}
+
+// --------------------------------------------------------
+// 15. Daily & Weekly Challenges
+// --------------------------------------------------------
+model Challenge {
+  id             String              @id @default(uuid())
+  title          String
+  description    String
+  type           ChallengeType       @default(DAILY)
+  difficulty     ChallengeDifficulty @default(EASY)
+  targetValue    Int
+  unit           String              // "sessions", "minutes", "reels"
+  xpReward       Int                 @default(20)
+  startDate      DateTime            @default(now())
+  endDate        DateTime
+
+  userChallenges UserChallenge[]
+}
+
+model UserChallenge {
+  id             String       @id @default(uuid())
+  userId         String
+  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  challengeId    String
+  challenge      Challenge    @relation(fields: [challengeId], references: [id], onDelete: Cascade)
+  currentValue   Int          @default(0)
+  completed      Boolean      @default(false)
+  claimed        Boolean      @default(false)
+  claimedAt      DateTime?
+
+  @@unique([userId, challengeId])
+  @@index([userId])
+}
+
+// --------------------------------------------------------
+// 16. Friends & Accountability Network
+// --------------------------------------------------------
+model Friendship {
+  id             String           @id @default(uuid())
+  senderId       String
+  sender         User             @relation("FriendshipInitiator", fields: [senderId], references: [id], onDelete: Cascade)
+  receiverId     String
+  receiver       User             @relation("FriendshipReceiver", fields: [receiverId], references: [id], onDelete: Cascade)
+  status         FriendshipStatus @default(PENDING)
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+
+  @@unique([senderId, receiverId])
+  @@index([senderId])
+  @@index([receiverId])
+}
+
+// --------------------------------------------------------
+// 17. Study Groups & Peer Accountability
+// --------------------------------------------------------
+model StudyGroup {
+  id             String        @id @default(uuid())
+  name           String
+  description    String?
+  inviteCode     String        @unique
+  isPrivate      Boolean       @default(false)
+  createdAt      DateTime      @default(now())
+
+  members        GroupMember[]
+}
+
+model GroupMember {
+  id             String      @id @default(uuid())
+  groupId        String
+  group          StudyGroup  @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  userId         String
+  user           User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role           GroupRole   @default(MEMBER)
+  joinedAt       DateTime    @default(now())
+
+  @@unique([groupId, userId])
+  @@index([userId])
+}
+
+// --------------------------------------------------------
+// 18. Notifications Center
+// --------------------------------------------------------
+model Notification {
+  id             String   @id @default(uuid())
+  userId         String
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title          String
+  message        String
+  type           String   // "XP_EARNED", "LEVEL_UP", "BADGE_UNLOCKED", "CHALLENGE_COMPLETE", "FRIEND_REQUEST"
+  isRead         Boolean  @default(false)
+  dataRefId      String?
+  createdAt      DateTime @default(now())
+
+  @@index([userId, isRead])
+}
